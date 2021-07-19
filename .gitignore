@@ -2,3 +2,6 @@
 **/MainServer.server.lua
 **/MainClient.client.lua
 **/Plugins
+**/**.rbxl
+**/**.rbxm
+**/**.lock
