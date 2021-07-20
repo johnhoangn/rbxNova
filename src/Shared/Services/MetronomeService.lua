@@ -21,7 +21,7 @@ function MetronomeService:BindToFrequency(frequency, callback)
     local taskID = HTTPService:GenerateGUID()
 
 	if (frequencyTasks == nil) then
-		frequencyTasks = { SinceLastTick = 0; NumTasks = 1; Tasks = {taskID = callback}; }
+		frequencyTasks = { SinceLastTick = 0; NumTasks = 1; Tasks = {[taskID] = callback}; }
 		Frequencies[frequency] = frequencyTasks
     else
         frequencyTasks.Tasks[taskID] = callback
@@ -30,6 +30,7 @@ function MetronomeService:BindToFrequency(frequency, callback)
     Tasks[taskID] = {
         Frequency = frequency;
         Callback = callback;
+        Working = false;
     }
 
     return taskID
@@ -67,8 +68,14 @@ function MetronomeService:EngineStart()
                 if (frequencyGroup.SinceLastTick >= period) then
                     frequencyGroup.SinceLastTick = 0
 
-                    for _taskID, callback in pairs(frequencyGroup.Tasks) do
-                        callback(period)
+                    for taskID, callback in pairs(frequencyGroup.Tasks) do
+                        if (not Tasks[taskID].Working) then
+                            self.Modules.ThreadUtil.Spawn(function()
+                                Tasks[taskID].Working = true
+                                callback(period)
+                                Tasks[taskID].Working = false
+                            end)
+                        end
                     end
                 end
             end
@@ -83,8 +90,14 @@ function MetronomeService:EngineStart()
                 if (frequencyGroup.SinceLastTick >= period) then
                     frequencyGroup.SinceLastTick = 0
 
-                    for _taskID, callback in pairs(frequencyGroup.Tasks) do
-                        callback(period)
+                    for taskID, callback in pairs(frequencyGroup.Tasks) do
+                        if (not Tasks[taskID].Working) then
+                            self.Modules.ThreadUtil.Spawn(function()
+                                Tasks[taskID].Working = true
+                                callback(period)
+                                Tasks[taskID].Working = false
+                            end)
+                        end
                     end
                 end
             end
