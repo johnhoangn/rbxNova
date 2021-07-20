@@ -17,4 +17,6 @@ return {
 	Ready = -2;
 	Test = -1;
 	BulkRequest = 0;
+
+    EntityStream = 1;
 }
