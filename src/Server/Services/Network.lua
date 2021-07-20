@@ -302,6 +302,7 @@ end
 -- @param requestType
 -- @param requestHandler == function(client, deltaTime, ...)
 function Network:HandleRequestType(requestType, requestHandler)
+    assert(requestType ~= nil, "nil request type")
     assert(requestHandler ~= nil, "nil request handler")
 	assert(RequestHandlers:Get(requestType) == nil, 
 		"Attempt to overwrite requestHandler for " .. requestType)
