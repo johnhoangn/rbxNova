@@ -20,8 +20,8 @@ function Entity.new(base, initialParams)
     assert(base.PrimaryPart ~= nil, "Missing primary part " .. base:GetFullName())
 
 	local self = DeepObject.new({
-        _Base = base;
         _InitialParams = initialParams;
+        Base = base;
     })
 
     if (initialParams ~= nil) then
@@ -38,8 +38,8 @@ end
 -- @returns <Vector3>
 function Entity:RealPosition()
     return Vector2.new(
-        self._Base.PrimaryPart.Position.X,
-        self._Base.PrimaryPart.Position.Z
+        self.Base.PrimaryPart.Position.X,
+        self.Base.PrimaryPart.Position.Z
     )
 end
 
@@ -55,8 +55,8 @@ end
 -- Destroys this instance and its physical model along with it
 local superDestroy = Entity.Destroy
 function Entity:Destroy()
-    self._Base:Destroy()
-    self._Base = nil
+    self.Base:Destroy()
+    self.Base = nil
     superDestroy()
 end
 

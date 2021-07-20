@@ -44,9 +44,9 @@ function EntityCelestial:Draw()
             end
         end
 
-        model:SetPrimaryPartCFrame(self._Base.PrimaryPart.CFrame)
-        model.Parent = self._Base
-        self.Modules.WeldUtil:WeldParts(model.PrimaryPart, self._Base.PrimaryPart)
+        model:SetPrimaryPartCFrame(self.Base.PrimaryPart.CFrame)
+        model.Parent = self.Base
+        self.Modules.WeldUtil:WeldParts(model.PrimaryPart, self.Base.PrimaryPart)
         self._Model = model
         self._Parts = parts
     end
