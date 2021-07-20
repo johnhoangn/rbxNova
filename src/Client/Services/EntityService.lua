@@ -8,12 +8,11 @@
 
 
 local SQRT = math.sqrt
-local RENDER_DISTANCE = 400
+local RENDER_DISTANCE = 100
 
 
 local EntityService = {Priority = 100}
 local Network, MetronomeService
-local CollectionService
 local ThreadUtil
 
 local Camera
@@ -22,8 +21,8 @@ local RenderOrigin
 local AllEntities
 local VisibleEntities
 local CachedEntities
-local CacheMutex
-local RenderJobID
+local CacheMutex -- Make sure nothing changes during iteration
+local RenderJobID, RenderJobSignal, RenderBuffer
 
 
 -- Retrieves distance to entity
@@ -42,18 +41,52 @@ local function RenderJob(dt)
     RenderOrigin.Y = Camera.CFrame.Position.Z -- Transforming Z axis to Y
     CacheMutex:Lock()
 
+    -- Check if there are any cached entities that are now in range
+    table.clear(RenderBuffer)
     for base, entity in CachedEntities:KeyIterator() do
         if (DistanceTo(entity) < RENDER_DISTANCE) then
-            EntityService:LoadEntity(base)
+            table.insert(RenderBuffer, base)
         end
     end
 
-    for base, entity in VisibleEntities:KeyIterator() do
-        -- entity:SetOpacity()
-        if (DistanceTo(entity) < RENDER_DISTANCE) then
-            --ThreadUtil.Spawn(entity.Draw, entity)
-            entity:Draw()
-        else
+    -- Load them
+    for _, base in ipairs(RenderBuffer) do
+        EntityService:LoadEntity(base)
+    end
+
+    -- Now to process visible entities if there are any
+    local toProcess = VisibleEntities.Size
+
+    if (toProcess > 0) then
+        local function ProcessEntity(base, entity)
+            -- Async due to potential asset downloads
+            if (DistanceTo(entity) < RENDER_DISTANCE) then
+                entity:Draw()
+            else
+                table.insert(RenderBuffer, base)
+            end
+
+            -- Lua is natively single thread, no race condition here
+            if (toProcess == 1) then
+                RenderJobSignal:Fire()
+                return
+            else
+                toProcess -= 1
+            end
+        end
+
+        -- Process them
+        table.clear(RenderBuffer)
+        for base, entity in VisibleEntities:KeyIterator() do
+            -- entity:SetOpacity()
+            ThreadUtil.Spawn(ProcessEntity, base, entity)
+        end
+
+        -- Yield for processing completion
+        RenderJobSignal:Wait()
+
+        -- Cleanup
+        for _, base in ipairs(RenderBuffer) do
             EntityService:CacheEntity(base)
         end
     end
@@ -170,22 +203,23 @@ function EntityService:CacheEntity(base)
 end
 
 
-function EntityService:Enable(boolean)
-    if (boolean) then
+-- Turns the renderer on or off
+-- @param state <boolean>
+function EntityService:Enable(state)
+    if (state) then
         -- TODO: configuration for render-update-rate
         RenderJobID = MetronomeService:BindToFrequency(15, RenderJob)
     else
         MetronomeService:Unbind(RenderJobID)
     end
 
-    self.Enabled = boolean
+    self.Enabled = state
 end
 
 
 function EntityService:EngineInit()
     Network = self.Services.Network
     MetronomeService = self.Services.MetronomeService
-	CollectionService = self.RBXServices.CollectionService
 
     ThreadUtil = self.Modules.ThreadUtil
 
@@ -199,6 +233,10 @@ function EntityService:EngineInit()
     CachedEntities = self.Classes.IndexedMap.new()
     VisibleEntities = self.Classes.IndexedMap.new()
     CacheMutex = self.Classes.Mutex.new()
+
+    RenderJobID = nil
+    RenderJobSignal = self.Classes.Signal.new()
+    RenderBuffer = {}
 
     self.EntityCreated = self.Classes.Signal.new()
     self.EntityDestroyed = self.Classes.Signal.new()
