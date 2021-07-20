@@ -2,11 +2,12 @@
 -- Responsible of keeping track of all entities present in the game
 --
 -- Dynamese (Enduo)
+-- 07.19.2021
 
 
 
 local EntityService = {Priority = 100}
-local Network
+local Network, AssetService
 local CollectionService, Players
 
 
@@ -24,7 +25,10 @@ local function Prefab(base)
         entityParams[parameter.Name] = parameter.Value
     end
 
-    return EntityService.Classes[entityParams._Type].new(base, entityParams)
+    local classID = entityParams._BaseID:sub(1, 2)
+    local entityType = AssetService:GetClassName(classID)
+
+    return EntityService.Classes[entityType].new(base, entityParams)
 end
 
 
@@ -119,6 +123,7 @@ end
 
 
 function EntityService:EngineInit()
+    AssetService = self.Services.AssetService
     Network = self.Services.Network
 	CollectionService = self.RBXServices.CollectionService
     Players = self.RBXServices.Players
