@@ -7,8 +7,8 @@
 
 
 local EntityService = {Priority = 100}
-local Network, AssetService
-local CollectionService, Players
+local AssetService
+local CollectionService
 
 
 local AllEntities
@@ -36,7 +36,7 @@ end
 --  reconstruct all entities from the bases given
 -- @param bases <table>, list of entity information
 -- @returns <table>
-local function PackEntityInfo(bases)
+function EntityService:PackEntityInfo(bases)
     local entities = {}
 
     -- Pack only relevant info, omitting functions and signals
@@ -89,19 +89,6 @@ function EntityService:CreateEntity(base, entityType, entityParams)
     CacheMutex:Release()
     self.EntityCreated:Fire(base)
 
-    -- Communicate the change
-    -- TODO: Remove this after SolarService is up and send only to users in the same system
-    for _, user in ipairs(Players:GetPlayers()) do
-        Network:FireClient(
-            user, 0,
-            Network:Pack(
-                Network.NetProtocol.None,
-                Network.NetRequestType.EntityStream,
-                PackEntityInfo({base})
-            )
-        )
-    end
-
     return newEntity
 end
 
@@ -124,20 +111,15 @@ end
 
 function EntityService:EngineInit()
     AssetService = self.Services.AssetService
-    Network = self.Services.Network
 	CollectionService = self.RBXServices.CollectionService
-    Players = self.RBXServices.Players
 
     CacheMutex = self.Classes.Mutex.new()
     AllEntities = self.Classes.IndexedMap.new()
 
     self.EntityCreated = self.Classes.Signal.new()
     self.EntityDestroyed = self.Classes.Signal.new()
-end
 
-
-function EntityService:EngineStart()
-	-- Gather galaxy entity placements and log them
+    -- Gather galaxy entity placements and log them
     for _, model in ipairs(CollectionService:GetTagged("EntityInit")) do
         AllEntities:Add(model, Prefab(model))
         model.Model:Destroy()
@@ -145,36 +127,11 @@ function EntityService:EngineStart()
         model.Configuration:Destroy()
         -- Don't waste memory on storing/replicating the models
     end
-
-    -- Streams information on entities to a user
-    -- TODO: Move to SolarService, a user should only have access to entities within the system
-    -- @param user <Player>
-    -- @param dt <float>
-    -- @param bases <table>, arraylike
-    -- @returns <table>
-    Network:HandleRequestType(
-        Network.NetRequestType.EntityStream,
-        function(user, dt, bases)
-            return bases, PackEntityInfo(bases)
-        end
-    )
+end
 
 
-    -- THIS IS TEMPORARY TEST CODE
-    delay(5, function()
-        local bases = CollectionService:GetTagged("EntityInit")
-        local packet = Network:Pack(
-            Network.NetProtocol.Forget,
-            Network.NetRequestType.EntityStream,
-            bases,
-            PackEntityInfo(bases)
-        )
-    
-        Network:FireClient(
-            Players.Dynamese,
-            packet
-        )
-    end)
+function EntityService:EngineStart()
+	
 end
 
 
