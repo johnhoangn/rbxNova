@@ -173,6 +173,7 @@ function EntityService:PurgeCache()
 
     CacheMutex:Lock()
     for base, _ in AllEntities:KeyIterator() do
+        self:CacheEntity(base)
         AllEntities:Remove(base)
         CachedEntities:Remove(base)
         VisibleEntities:Remove(base)
