@@ -7,7 +7,7 @@
 -- Usage: Treat it like a normal BodyVelocity, parent it, change maxforce, change velocity, etc.
 
 -- Dynamese (Enduo)
--- 7.14.2021
+-- 7.20.2021
 
 -- Updated using .AssemblyMass, this should work well enough in all situations now
 -- Swapped .Velocity in favor of .AssemblyLinearVelocity in situations the assembly might be rotating
@@ -70,6 +70,30 @@ function BodyVelocity2.new()
 end
 
 
+-- Manages an existing VectorForce instead
+-- @param vForce <VectorForce>
+-- @returns <BodyVelocity2>
+function BodyVelocity2.fromVectorForce(vForce)
+	local self = setmetatable({
+        -- Default values for BodyVelocity
+        -- P has no effect in PGS solver, omitting
+        _Velocity = Vector3.new();
+        _MaxForce = Vector3.new(1, 1, 1) * DEFAULT_MAX_FORCE;
+        _Parent = vForce.Parent;
+
+        Instance = vForce;
+        Attach = vForce.Attachment0;
+	}, BodyVelocity2)
+
+    vForce.Force = ZERO_VECTOR
+
+    Managed.Num += 1
+    Managed.List[self] = true
+
+	return self
+end
+
+
 function BodyVelocity2.__newindex(self, index, value)
     if (index == "Parent") then
         rawset(self, "_Parent", value)
@@ -98,7 +122,7 @@ function BodyVelocity2:Step()
     local part = self._Parent
     local targetForce =
         (Vector3.new(0, workspace.Gravity, 0)
-        + (self._Velocity - part.AssemblyMassLinearVelocity)) * part.AssemblyMass
+        + (self._Velocity - part.AssemblyLinearVelocity)) * part.AssemblyMass
 
     self.Instance.Force = Vector3.new(
         math.clamp(targetForce.X, -self._MaxForce.X, self._MaxForce.X),
