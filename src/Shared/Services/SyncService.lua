@@ -130,25 +130,25 @@ function module:EngineInit()
 		self.ReplicationPressure = 0
 		self.Threshold = 100
 
-		clockSyncSignal.OnClientEvent:connect(function(...)
+		clockSyncSignal.OnClientEvent:Connect(function(...)
 			self:OnClientEvent(...)
 		end)
 
-		game.DescendantAdded:connect(function()
+		game.DescendantAdded:Connect(function()
 			self.Tally += 1
 		end)
 	else
 		self.TimeDelays = {}
 
-		players.PlayerAdded:connect(function(player)
+		players.PlayerAdded:Connect(function(player)
 			self:PlayerAdded(player)
 		end)
 
-		players.PlayerRemoving:connect(function(player)
+		players.PlayerRemoving:Connect(function(player)
 			self:PlayerRemoving(player)
 		end)
 
-		clockSyncSignal.OnServerEvent:connect(function(...)
+		clockSyncSignal.OnServerEvent:Connect(function(...)
 			self:OnServerEvent(...)
 		end)
 	end
