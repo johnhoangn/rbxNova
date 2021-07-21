@@ -90,6 +90,23 @@ function SolarService:StreamEntities(user, system)
 end
 
 
+-- Injects an entity into a system and notifies relevant users
+-- @param system <SolarSystem>
+-- @param entity <T extends Entity>
+function SolarService:AddEntity(system, entity)
+    system:AddEntity(entity)
+
+    local packet = Network:Pack(
+        Network.NetProtocol.Forget,
+        Network.NetRequestType.EntityStream,
+        {entity.Base},
+        EntityService:PackEntityInfo({entity.Base})
+    )
+
+    Network:FireClientList(system.Players:ToArray(), packet)
+end
+
+
 -- Creates a new entity and injects it into a system
 -- @param system <SolarSystem>
 -- @param sPosition <Vector2> solar position to place the entity
@@ -98,16 +115,7 @@ end
 -- @param entityParams <table>
 function SolarService:CreateEntity(system, sPosition, base, entityType, entityParams)
     local entity = EntityService:CreateEntity(base, entityType, entityParams)
-
-    local packet = Network:Pack(
-        Network.NetProtocol.Forget,
-        Network.NetRequestType.EntityStream,
-        {base},
-        EntityService:PackEntityInfo({base})
-    )
-
-    system:AddEntity(entity)
-    Network:FireClientList(system.Players, packet)
+    self:AddEntity(system, entity)
 end
 
 
@@ -147,7 +155,7 @@ function SolarService:WarpUser(user, newSystem)
         end,
         readyTimeout
     )
-    
+
     -- User disabled renderer and is ready to warp?
     if (not okSignal:Wait()) then
         -- Cancel warp
