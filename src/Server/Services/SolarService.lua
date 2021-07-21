@@ -249,6 +249,27 @@ function SolarService:EngineStart()
             return PackSystemEntities(system)
         end
     )
+
+    Network:HandleRequestType(
+        Network.NetRequestType.EntityRequest,
+        function(user, dt, base)
+            local system = ActiveUsers:Get(user).System
+            local entity = system.Entities.All:Get(base)
+
+            if (entity ~= nil) then
+                local packet = Network:Pack(
+                    Network.NetProtocol.Forget,
+                    Network.NetRequestType.EntityStream,
+                    {entity.Base},
+                    EntityService:PackEntityInfo({entity.Base})
+                )
+
+                Network:FireClient(user, packet)
+            end
+
+            return nil
+        end
+    )
 end
 
 
