@@ -121,6 +121,7 @@ function EntityService:EngineInit()
 
     -- Gather galaxy entity placements and log them
     for _, model in ipairs(CollectionService:GetTagged("EntityInit")) do
+        if (not model:IsDescendantOf(workspace)) then continue end
         AllEntities:Add(model, Prefab(model))
         if (model:FindFirstChild("Model") ~= nil) then model.Model:Destroy() end
         model.PrimaryPart.Transparency = 1
@@ -131,7 +132,6 @@ end
 
 
 function EntityService:EngineStart()
-	
 end
 
 
