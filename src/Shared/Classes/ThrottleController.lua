@@ -13,8 +13,6 @@ setmetatable(ThrottleController, DeepObject)
 
 local ABS = math.abs
 local CLAMP = math.clamp
-local MAX = math.max
-local MIN = math.min
 local SIGN = math.sign
 
 
