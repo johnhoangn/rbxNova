@@ -122,7 +122,7 @@ function EntityService:EngineInit()
     -- Gather galaxy entity placements and log them
     for _, model in ipairs(CollectionService:GetTagged("EntityInit")) do
         AllEntities:Add(model, Prefab(model))
-        model.Model:Destroy()
+        if (model:FindFirstChild("Model") ~= nil) then model.Model:Destroy() end
         model.PrimaryPart.Transparency = 1
         model.Configuration:Destroy()
         -- Don't waste memory on storing/replicating the models
