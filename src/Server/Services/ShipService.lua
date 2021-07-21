@@ -6,8 +6,8 @@
 
 
 
-local ShipService = {}
-local AssetService, SolarService, EntityService
+local ShipService = {Priority = 80}
+local AssetService, SolarService, EntityService, Network
 local Players
 
 local NPCShips, NPCShipsMutex, NPCProcessJobID
@@ -26,20 +26,42 @@ local function ManageUser(user)
     local shipBaseID = "061"
     local shipAsset = AssetService:GetAsset(shipBaseID)
     local shipConfig = shipAsset.DefaultConfig
-    local ship = ShipService:CreateShip("061", shipConfig)
+    local ship = ShipService:CreateShip("061", shipConfig, user)
     local system = SolarService:GetSystem("Sol")
 
     -- TODO: Load system data from DataService
     SolarService:AddEntity(system, ship)
     ship:PlaceAt(user.Character.PrimaryPart.CFrame)
     ship.Base.Name = string.format("%s's %s", user.Name, ship.Base.Name)
-
-    ShipService.Modules.WeldUtil:WeldParts(user.Character.PrimaryPart, ship.Base.PrimaryPart)
-    user.Character.Humanoid.PlatformStand = true
+    ship.Base.PrimaryPart:SetNetworkOwner(user)
 
     ActiveUsers:Add(user, {
         Ship = ship;
     })
+
+    local attemptsLeft = 3
+    local function TryGiveControl()
+        Network:FireClient(user,
+            Network:Pack(
+                Network.NetProtocol.Response,
+                Network.NetRequestType.ShipControl,
+                ship.Base
+            ),
+            function (responded, user, dt, success)
+                if (not responded or not success) then
+                    if (attemptsLeft > 0) then
+                        wait(0.2)
+                        TryGiveControl()
+                        attemptsLeft -= 1
+                    else
+                        user:Kick("ERR_SHIP_ACCESS_FAILURE")
+                    end
+                end
+            end, 5
+        )
+    end
+
+    TryGiveControl()
 end
 
 
@@ -130,6 +152,7 @@ function ShipService:EngineInit()
     AssetService = self.Services.AssetService
     SolarService = self.Services.SolarService
     EntityService = self.Services.EntityService
+    Network = self.Services.Network
 
     Players = self.RBXServices.Players
 
@@ -146,7 +169,9 @@ end
 function ShipService:EngineStart()
 	Players.PlayerAdded:Connect(ManageUser)
     for _, user in ipairs(Players:GetPlayers()) do
-        ManageUser(user)
+        self.Modules.ThreadUtil.Spawn(function()
+            ManageUser(user)
+        end)
     end
 end
 
