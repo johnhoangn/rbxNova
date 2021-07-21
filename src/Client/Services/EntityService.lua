@@ -118,9 +118,19 @@ end
 
 -- Retrieves an entity
 -- @param base <Model>
+-- @param download <boolean>, download if we don't have it (and are allowed)
 -- @returns <T extends Entity>
-function EntityService:GetEntity(base)
-    return AllEntities:Get(base)
+function EntityService:GetEntity(base, download)
+    local entity = AllEntities:Get(base)
+
+    if (entity == nil and download) then
+        Network:RequestServer(
+            Network.NetRequestType.EntityRequest,
+            base
+        ):Wait()
+    end
+
+    return entity
 end
 
 
