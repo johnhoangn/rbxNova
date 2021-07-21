@@ -19,6 +19,10 @@ return {
 	BulkRequest = 0;
 
     EntityStream = 1;
-    WarpPrepare = 2;
-    WarpExit = 3;
+    EntityRequest = 2;
+
+    WarpPrepare = 3;
+    WarpExit = 4;
+
+    ShipControl = 5;
 }
