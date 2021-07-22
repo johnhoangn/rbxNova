@@ -78,7 +78,7 @@ local function Preload()
 			ThreadUtil.Spawn(
 				AssetService.SetPurge,
 				AssetService,
-				baseID, 
+				baseID,
 				false
 			)
 		end
@@ -91,49 +91,49 @@ end
 -- Retrieves a cached asset or downloads it via baseID
 -- @param baseID <string> of the form XXYYYY, XX: ClassID, YYYY: AssetID
 -- @return the indexed asset <table>
-function AssetService:GetAsset(baseID)
+function AssetService:GetAsset(baseID, dbg)
 	local cached = AssetCache:Get(baseID)
-	
+
 	if (cached ~= nil) then
 		cached.LastUsed = tick()
 		return cached
-		
+
 	elseif (DownloadList:Contains(baseID)) then
 		local downloaded = self.Classes.Signal.new()
 		local waitForAsset
-			
+
 		waitForAsset = self.Downloaded:Connect(function(downloadedID, asset)
 			if (downloadedID == baseID) then
 				waitForAsset:Disconnect()
-				downloaded:Destroy()
 				downloaded:Fire(asset)
+                downloaded:Destroy()
 			end
 		end)
-		
+
 		return downloaded:Wait()
 	else
 		DownloadList:Add(baseID, true)
 		AssetService.DownloadListSize += 1
-		
+
 		local streamID = Network:RequestServer(
 			Network.NetRequestType.AssetRequest,
 			baseID
 		):Wait()
-		
+
 		DownloadList:Remove(baseID)
 		AssetService.DownloadListSize -= 1
-		
+
 		local assetFolder = self.LocalPlayer:WaitForChild(streamID, 30):Clone()
 		local asset = CacheAssetHelper(assetFolder)
 		local classID = baseID:sub(1, 2)
 		local classFolder = self.EnvironmentFolder.Cache:FindFirstChild(classID)
-		
+
 		if (classFolder == nil) then
 			classFolder = Instance.new("Folder")
 			classFolder.Name = classID
 			classFolder.Parent = self.EnvironmentFolder.Cache
 		end
-		
+
 		assetFolder.Name = baseID:sub(3)
 		assetFolder.Parent = classFolder
 		asset.Folder = assetFolder
@@ -142,7 +142,7 @@ function AssetService:GetAsset(baseID)
 		assetFolder.AssetName:Destroy()
 		AssetCache:Add(baseID, asset)
 		self.Downloaded:Fire(baseID, asset)
-		
+
 		return asset
 	end
 end
