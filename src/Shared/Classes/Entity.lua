@@ -10,18 +10,23 @@ local Entity = {}
 Entity.__index = Entity
 setmetatable(Entity, DeepObject)
 
+local HttpService
+
 
 -- Normal constructor
 -- @param base <Model>
 -- @param initialParams <table> == nil, convenience for entity subclasses
 -- @returns <Entity>
 function Entity.new(base, initialParams)
+    HttpService = HttpService or Entity.RBXServices.HttpService
+
     assert(base:IsA("Model"), "Base must be a model " .. base:GetFullName())
     assert(base.PrimaryPart ~= nil, "Missing primary part " .. base:GetFullName())
 
 	local self = DeepObject.new({
         _InitialParams = initialParams;
         Base = base;
+        UID = initialParams.UID or HttpService:GenerateGUID();
     })
 
     if (initialParams ~= nil) then
