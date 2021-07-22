@@ -38,7 +38,7 @@ function SolarSystem:AddEntity(entity)
     self.ModLock:Lock()
     self.Entities.All:Add(entity.Base, entity)
     self.Entities[entity.ClassName]:Add(entity.Base, entity)
-    self.ModLock:Release()
+    self.ModLock:Unlock()
 end
 
 
@@ -48,7 +48,7 @@ function SolarSystem:RemoveEntity(entity)
     self.ModLock:Lock()
     self.Entities.All:Remove(entity.Base)
     self.Entities[entity.ClassName]:Remove(entity.Base)
-    self.ModLock:Release()
+    self.ModLock:Unlock()
 end
 
 

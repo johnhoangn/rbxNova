@@ -50,7 +50,7 @@ local function ManageUser(user)
             function (responded, user, dt, success)
                 if (not responded or not success) then
                     if (attemptsLeft > 0) then
-                        wait(0.2)
+                        wait(1)
                         TryGiveControl()
                         attemptsLeft -= 1
                     else
@@ -75,7 +75,7 @@ local function ProcessNPCShips(dt)
     for _, ship in NPCShips:Iterator() do
         ship:UpdatePhysics(dt)
     end
-    NPCShipsMutex:Release()
+    NPCShipsMutex:Unlock()
 end
 
 
@@ -105,11 +105,11 @@ function ShipService:CreateShip(baseID, config, user)
     if (user) then
         UserShipsMutex:Lock()
         UserShips:Add(base, ship)
-        UserShipsMutex:Release()
+        UserShipsMutex:Unlock()
     else
         NPCShipsMutex:Lock()
         NPCShips:Add(base, ship)
-        NPCShipsMutex:Release()
+        NPCShipsMutex:Unlock()
 
         NPCProcessJobID = self.Services.MetronomeService:BindToFrequency(15, ProcessNPCShips)
     end

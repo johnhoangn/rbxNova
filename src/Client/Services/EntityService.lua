@@ -39,8 +39,8 @@ end
 local function RenderJob(dt)
     RenderOrigin.X = Camera.CFrame.Position.X
     RenderOrigin.Y = Camera.CFrame.Position.Z -- Transforming Z axis to Y
-    CacheMutex:Lock()
 
+    CacheMutex:Lock()
     -- Check if there are any cached entities that are now in range
     table.clear(RenderBuffer)
     for base, entity in CachedEntities:KeyIterator() do
@@ -90,8 +90,7 @@ local function RenderJob(dt)
             EntityService:CacheEntity(base)
         end
     end
-
-    CacheMutex:Release()
+    CacheMutex:Unlock()
 end
 
 
@@ -101,18 +100,21 @@ end
 local function ReceiveEntities(dt, bases, entityInfo)
     CacheMutex:Lock()
     for i, base in pairs(bases) do
-        local info = entityInfo[i]
+        if (EntityService:GetEntity(base) ~= nil) then
+            continue
+        end
 
-        CachedEntities:Add(base,
-            EntityService:CreateEntity(
-                base,
-                info.Type,
-                info.InitialParams,
-                true
-            )
+        local info = entityInfo[i]
+        local entity = EntityService:CreateEntity(
+            base,
+            info.Type,
+            info.InitialParams,
+            true
         )
+
+        CachedEntities:Add(base, entity)
     end
-    CacheMutex:Release()
+    CacheMutex:Unlock()
 end
 
 
@@ -148,12 +150,11 @@ function EntityService:CreateEntity(base, entityType, entityParams, noLock)
     end
 
     AllEntities:Add(base, newEntity)
+    self.EntityCreated:Fire(base)
 
     if (not noLock) then
-        CacheMutex:Release()
+        CacheMutex:Unlock()
     end
-
-    self.EntityCreated:Fire(base)
 
     return newEntity
 end
@@ -188,7 +189,7 @@ function EntityService:PurgeCache()
         CachedEntities:Remove(base)
         VisibleEntities:Remove(base)
     end
-    CacheMutex:Release()
+    CacheMutex:Unlock()
 
     return size
 end
@@ -219,7 +220,7 @@ end
 function EntityService:Enable(state)
     if (state) then
         -- TODO: configuration for render-update-rate
-        RenderJobID = MetronomeService:BindToFrequency(15, RenderJob)
+        RenderJobID = MetronomeService:BindToFrequency(5, RenderJob)
     else
         MetronomeService:Unbind(RenderJobID)
     end
