@@ -26,7 +26,7 @@ local function ManageUser(user)
         System = currentSystem;
     })
 
-    currentSystem.Players:Add(user)
+    currentSystem.Players:Add(user, user)
     SolarService:StreamEntities(user, currentSystem)
 
     user.AncestryChanged:Connect(function()
