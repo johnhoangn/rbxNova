@@ -48,7 +48,7 @@ function EntityService:PackEntityInfo(bases)
             InitialParams = entity._InitialParams;
         }
     end
-    CacheMutex:Release()
+    CacheMutex:Unlock()
 
     return entities
 end
@@ -86,7 +86,8 @@ function EntityService:CreateEntity(base, entityType, entityParams)
 
     CacheMutex:Lock()
     AllEntities:Add(base, newEntity)
-    CacheMutex:Release()
+    CacheMutex:Unlock()
+
     self.EntityCreated:Fire(base)
 
     return newEntity
