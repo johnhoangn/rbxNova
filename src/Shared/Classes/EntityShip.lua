@@ -21,10 +21,10 @@ function EntityShip.new(base, initialParams)
     AssetService = AssetService or EntityShip.Services.AssetService
 
 	local self = Entity.new(base, initialParams)
-    local asset = AssetService:GetAsset(initialParams._BaseID)
 
     self._Root = base.PrimaryPart
-    self._Asset = asset
+
+    self._Asset = AssetService:GetAsset(initialParams._BaseID)
 
     -- Grab attributes for convenience
     self.ThrustCoaxial = base:GetAttribute("ThrustCoaxial")
@@ -32,7 +32,7 @@ function EntityShip.new(base, initialParams)
     self.ThrustYaw = base:GetAttribute("ThrustYaw")
     self.SpeedFwd = base:GetAttribute("SpeedFwd")
     self.SpeedRev = base:GetAttribute("SpeedRev")
-    self.SpeedYaw = base:GetAttribute("SpeedYaw")
+    self.SpeedYaw = math.rad(base:GetAttribute("SpeedYaw"))
 
     self._Forces = {
         Coaxial = base.PrimaryPart.CoaxialForce;
@@ -41,12 +41,13 @@ function EntityShip.new(base, initialParams)
     };
 
     self._PIDs = {
+        -- Tuning PID gains is actually just an art; these are 100% trial + error
         Coaxial = PID.new(1, 0, 0, -self.ThrustCoaxial, self.ThrustCoaxial);
         Lateral = PID.new(1, 0, 0, -self.ThrustLateral, self.ThrustLateral);
-        Yaw = PID.new(1, 0, 0, -self.SpeedYaw, self.SpeedYaw)
+        Yaw = PID.new(50, 0, 0, -self.ThrustYaw, self.ThrustYaw)
     }
 
-    self._SteerDelta = 0
+    self._SteerDirection = 0
 
     self._Throttle = {
         Ratio = 0;
@@ -66,7 +67,7 @@ function EntityShip.new(base, initialParams)
                 self._PIDs[attr:sub(b + 1)].Bounds.Max = attrVal
 
             elseif (attr:find("Speed") ~= nil) then
-                self:SetThrottle(self.Throttle.Value)
+                self:SetThrottle(self._Throttle.Value)
             end
         end)
     )
@@ -100,9 +101,10 @@ end
 -- @param targetPosition <Vector3> == nil
 function EntityShip:SetSteer(targetPosition)
     if (targetPosition ~= nil) then
-        self._SteerDelta = (targetPosition - self._Root.Position).Unit:Dot(self._Root.CFrame.LookVector)
+        targetPosition = targetPosition * XZ_PLANE
+        self._SteerDirection = self._Root.CFrame.LookVector:Cross((targetPosition - self._Root.Position).Unit).Y
     else
-        self._SteerDelta = 0
+        self._SteerDirection = 0
     end
 end
 
@@ -116,6 +118,7 @@ function EntityShip:UpdatePhysics(dt)
     local currentSpeed = currentVelocity.Magnitude
     local desiredDirection = root.CFrame.LookVector * XZ_PLANE
     local desiredSpeed = self._Throttle.Value
+    local desiredYawSpeed = self._SteerDirection * self.SpeedYaw
 
     -- Figure the speed components to divide the thrust into two: coaxial (main thruster) and lateral (side thrusters)
     -- Yielding two scalars, so the PIDs only compute their respective local axes
@@ -125,13 +128,16 @@ function EntityShip:UpdatePhysics(dt)
     -- Calculate necessary forces
     local coaxialOutput = self._PIDs.Coaxial:Calculate(SIGN(self._Throttle.Ratio) * desiredSpeed, currentSpeed * coaxialDot, dt)
     local lateralOutput = self._PIDs.Lateral:Calculate(0, currentSpeed * lateralDot, dt)
+    local yawOutput = self._PIDs.Yaw:Calculate(desiredYawSpeed, root.AssemblyAngularVelocity.Y, dt)
 
     -- Scale thrust up by mass to achieve target speeds at defined acceleration rates
     self._Forces.Coaxial.Force = coaxialOutput * root.AssemblyMass * COAXIAL
     self._Forces.Lateral.Force = lateralOutput * root.AssemblyMass * LATERAL
 
-    -- Lastly, also update the yaw controller
-    
+    -- Also update yaw torque
+    self._Forces.Yaw.Torque = yawOutput * root.AssemblyMass * YAW
+
+    -- TODO: Apply thruster effectiveness modifiers (when a side or the aft is blown up or the ship is in a weight threshold)
 end
 
 

@@ -9,8 +9,8 @@
 local ShipService = {Priority = 80}
 local EntityService, MetronomeService, Network, FakeCAS
 
+local Mouse
 local UserShip, ProcessJobID
-local ControlsMaid
 
 
 -- Own ship updater job
@@ -100,8 +100,6 @@ function ShipService:EnableControls(state)
             else
                 UserShip:SetThrottle(inputStates.S and -1 or 0)
             end
-
-            print("W", inputStates.W)
         end, Enum.KeyCode.W)
 
         FakeCAS:BindAction("ThrottleMin", function(_, state)
@@ -112,13 +110,25 @@ function ShipService:EnableControls(state)
             else
                 UserShip:SetThrottle(inputStates.W and 1 or 0)
             end
-
-            print("S", inputStates.S)
         end, Enum.KeyCode.S)
 
         FakeCAS:BindAction("Steer", function(_, state)
             inputStates.LMB = state == Enum.UserInputState.Begin
-            print("Click", inputStates.LMB)
+
+            if (inputStates.LMB) then
+                local release, conn
+
+                conn = game:GetService("RunService").Stepped:Connect(function(et, dt)
+                    UserShip:SetSteer(Mouse.Hit.p)
+                end)
+
+                release = Mouse.Button1Up:Connect(function()
+                    conn:Disconnect()
+                    release:Disconnect()
+                    UserShip:SetSteer(nil)
+                end)
+            end
+
         end, Enum.UserInputType.MouseButton1)
 
     else
@@ -137,7 +147,7 @@ function ShipService:EngineInit()
     Network = self.Services.Network
     FakeCAS = self.Modules.FakeCAS
 
-    ControlsMaid = self.Classes.Maid.new()
+    Mouse = self.LocalPlayer:GetMouse()
 
     self.ShipCreated = self.Classes.Signal.new()
     self.ControlsEnabled = false
