@@ -7,7 +7,7 @@
 
 
 local ShipService = {Priority = 80}
-local AssetService, SolarService, EntityService, Network
+local AssetService, SolarService, EntityService, Network, DataService
 local Players
 
 local NPCShips, NPCShipsMutex, NPCProcessJobID
@@ -18,26 +18,32 @@ local ActiveUsers
 -- Manages a user and gives them their ship
 -- TODO: Only provide a vessel when the user departs a station OR logged off in space
 -- TODO: Remove the user's vessel when they enter a station
+-- TODO: Put the user's ship at their last known solar position and orientation
 -- @param user <Player>
 local function ManageUser(user)
     if (not user.Character) then user.CharacterAdded:Wait() end
 
-    -- TODO: Load ship data from DataService
-    local shipBaseID = "061"
-    local shipAsset = AssetService:GetAsset(shipBaseID)
-    local shipConfig = shipAsset.DefaultConfig
-    local ship = ShipService:CreateShip("061", shipConfig, user)
-    local system = SolarService:GetSystem("Sol")
+    local userData = DataService:GetData(user)
+    local shipData = userData.CurrentShip
 
-    -- TODO: Load system data from DataService
+    -- TODO: Load ship config instead of default config
+    -- TODO: Load ship status from shipData.Status
+
+    local shipBaseID = shipData.BaseID
+    local shipAsset = AssetService:GetAsset(shipBaseID)
+    local ship = ShipService:CreateShip(shipBaseID, require(shipAsset.DefaultConfig), nil, user)
+    local system = SolarService:GetSystem(userData.Whereabouts.System)
+
     SolarService:AddEntity(system, ship)
-    ship:PlaceAt(user.Character.PrimaryPart.CFrame)
-    ship.Base.Name = string.format("%s's %s", user.Name, ship.Base.Name)
+    --ship:PlaceAt(user.Character.PrimaryPart.CFrame)
+    ship.Base.Name = string.format("%s", user.UserId)
     ship.Base.PrimaryPart:SetNetworkOwner(user)
 
     ActiveUsers:Add(user, {
         Ship = ship;
     })
+
+    -- TODO: Take control if the user leaves, and return it if they rejoin
 
     local attemptsLeft = 3
     local function TryGiveControl()
@@ -84,18 +90,64 @@ end
 -- NOTE: The new ship must be placed into a SolarSystem
 -- @param baseID <string>
 -- @param config <table>
+-- @param status <table> == nil, information on the ship's status; defaults to asset values
 -- @param user <Player> == nil, user that owns this vessel
-function ShipService:CreateShip(baseID, config, user)
+function ShipService:CreateShip(baseID, config, status, user)
+    local asset = AssetService:GetAsset(baseID)
     local base = AssetService:GetAsset("060").Model:Clone()
-    local ship = EntityService:CreateEntity(base, "EntityShip", { _BaseID = baseID; Config = config; User = user})
-    local hitboxes = ship._Asset.Hitboxes:Clone()
 
-    -- Hitboxes (will be deleted on locally clients)
+    -- Handle attributes
+    base:SetAttribute("ThrustCoaxial", asset.ShipData.ThrustCoaxial)
+    base:SetAttribute("ThrustLateral", asset.ShipData.ThrustLateral)
+    base:SetAttribute("ThrustYaw", asset.ShipData.ThrustYaw)
+    base:SetAttribute("SpeedFwd", asset.ShipData.SpeedFwd)
+    base:SetAttribute("SpeedRev", asset.ShipData.SpeedRev)
+    base:SetAttribute("SpeedYaw", asset.ShipData.SpeedYaw)
+
+    for section, sectionData in pairs(config.Sections) do
+        base:SetAttribute("MaxShield" .. section, sectionData.Shields)
+        base:SetAttribute("MaxArmor" .. section, sectionData.Armor)
+        base:SetAttribute("MaxHull" .. section, asset.ShipData.Sections[section].Hull)
+        base:SetAttribute("Shield" .. section, sectionData.Shields)
+        base:SetAttribute("Armor" .. section, sectionData.Armor)
+        base:SetAttribute("Hull" .. section, asset.ShipData.Sections[section].Hull)
+    end
+
+    local ship = EntityService:CreateEntity(base, "EntityShip", {
+        _BaseID = baseID;
+        Config = config;
+        User = user;
+    })
+
+    local hitboxes = asset.Hitboxes:Clone()
+    local hardpoints = asset.Hardpoints:Clone()
+
+    -- Hitboxes (will be deleted locally on clients)
     hitboxes:SetPrimaryPartCFrame(base.PrimaryPart.CFrame)
     self.Modules.WeldUtil:WeldParts(hitboxes.PrimaryPart, base.PrimaryPart)
     hitboxes.Parent = base
 
-    -- TODO: load and fix attachments' roots so that turrets have a reference to shoot from
+    -- Hardpoints, used for server's hit detection
+    -- TODO: in ship combat: add AND subtract ship's velocity * ping for origins of two raycasts as a barebones netcode solution
+    hardpoints:SetPrimaryPartCFrame(base.PrimaryPart.CFrame)
+    self.Modules.WeldUtil:WeldParts(hardpoints.PrimaryPart, base.PrimaryPart)
+    hardpoints.Parent = base
+
+    for section, sectionData in pairs(config.Sections) do
+        local modelSection = hardpoints:FindFirstChild(section)
+
+        if (modelSection == nil) then continue end
+        for uid, attachmentData in pairs(sectionData.Attachments) do
+            if (attachmentData.Hardpoint ~= nil) then
+                local attachModel = AssetService:GetAsset(attachmentData.BaseID).Model:Clone()
+                local attachPart = modelSection[attachmentData.Hardpoint]
+
+                attachModel:SetPrimaryPartCFrame(attachPart.CFrame)
+                self.Modules.WeldUtil:WeldParts(attachModel.PrimaryPart, attachPart)
+                attachModel.Parent = modelSection
+            end
+        end
+    end
 
     -- Finalized
     base.Name = ship._Asset.AssetName
@@ -153,6 +205,7 @@ function ShipService:EngineInit()
     SolarService = self.Services.SolarService
     EntityService = self.Services.EntityService
     Network = self.Services.Network
+    DataService = self.Services.DataService
 
     Players = self.RBXServices.Players
 
