@@ -71,9 +71,11 @@ function MetronomeService:EngineStart()
                     for taskID, callback in pairs(frequencyGroup.Tasks) do
                         if (not Tasks[taskID].Working) then
                             self.Modules.ThreadUtil.Spawn(function()
-                                Tasks[taskID].Working = true
-                                callback(period)
-                                Tasks[taskID].Working = false
+                                if (Tasks[taskID] ~= nil) then
+                                    Tasks[taskID].Working = true
+                                    callback(period)
+                                    Tasks[taskID].Working = false
+                                end
                             end)
                         end
                     end
@@ -93,9 +95,11 @@ function MetronomeService:EngineStart()
                     for taskID, callback in pairs(frequencyGroup.Tasks) do
                         if (not Tasks[taskID].Working) then
                             self.Modules.ThreadUtil.Spawn(function()
-                                Tasks[taskID].Working = true
-                                callback(period)
-                                Tasks[taskID].Working = false
+                                if (Tasks[taskID] ~= nil) then
+                                    Tasks[taskID].Working = true
+                                    callback(period)
+                                    Tasks[taskID].Working = false
+                                end
                             end)
                         end
                     end
@@ -109,6 +113,8 @@ end
 function MetronomeService:EngineInit()
 	HTTPService = self.RBXServices.HttpService
     RunService = self.RBXServices.RunService
+
+    TaskMutex = self.Classes.Mutex.new()
 end
 
 
