@@ -17,19 +17,31 @@ local YAW = Vector3.new(0, 1, 0)
 local XZ_PLANE = Vector3.new(1, 0, 1)
 
 
+local function DebugPart(c)
+    local p = Instance.new("Part")
+
+    p.Anchored = true
+    p.CanTouch = false
+    p.CanCollide = false
+    p.Material = Enum.Material.Neon
+    p.Color = c or Color3.new(0.443137, 0.925490, 0.886274)
+
+    return p
+end
+
+
 function EntityShip.new(base, initialParams)
     AssetService = AssetService or EntityShip.Services.AssetService
 
 	local self = Entity.new(base, initialParams)
 
     self._Root = base.PrimaryPart
-
     self._Asset = AssetService:GetAsset(initialParams._BaseID)
 
     -- Grab attributes for convenience
     self.ThrustCoaxial = base:GetAttribute("ThrustCoaxial")
     self.ThrustLateral = base:GetAttribute("ThrustLateral")
-    self.ThrustYaw = base:GetAttribute("ThrustYaw")
+    self.ThrustYaw = math.rad(base:GetAttribute("ThrustYaw"))
     self.SpeedFwd = base:GetAttribute("SpeedFwd")
     self.SpeedRev = base:GetAttribute("SpeedRev")
     self.SpeedYaw = math.rad(base:GetAttribute("SpeedYaw"))
@@ -44,7 +56,7 @@ function EntityShip.new(base, initialParams)
         -- Tuning PID gains is actually just an art; these are 100% trial + error
         Coaxial = PID.new(1, 0, 0, -self.ThrustCoaxial, self.ThrustCoaxial);
         Lateral = PID.new(1, 0, 0, -self.ThrustLateral, self.ThrustLateral);
-        Yaw = PID.new(50, 0, 0, -self.ThrustYaw, self.ThrustYaw)
+        Yaw = PID.new(1, 0, 0, -self.ThrustYaw, self.ThrustYaw)
     }
 
     self._SteerDirection = 0
@@ -60,15 +72,24 @@ function EntityShip.new(base, initialParams)
             local attrVal = base:GetAttribute(attr)
             local thrustSubStr, b = attr:find("Thrust")
 
-            self[attr] = attrVal
-
             if (thrustSubStr ~= nil) then
-                self._PIDs[attr:sub(b + 1)].Bounds.Min = -attrVal
-                self._PIDs[attr:sub(b + 1)].Bounds.Max = attrVal
+                local target = attr:sub(b + 1)
+
+                if (target == "Yaw") then
+                    attrVal = math.rad(attrVal)
+                end
+
+                self._PIDs[target].Bounds.Min = -attrVal
+                self._PIDs[target].Bounds.Max = attrVal
 
             elseif (attr:find("Speed") ~= nil) then
+                if (attr == "SpeedYaw") then
+                    attrVal = math.rad(attrVal)
+                end
                 self:SetThrottle(self._Throttle.Value)
             end
+
+            self[attr] = attrVal
         end)
     )
 
@@ -137,12 +158,27 @@ function EntityShip:UpdatePhysics(dt)
     -- Also update yaw torque
     self._Forces.Yaw.Torque = yawOutput * root.AssemblyMass * YAW
 
+    print(currentSpeed, math.deg(root.AssemblyAngularVelocity.Y))
+
+    self._DebugVelocityPart.Size = Vector3.new(.2, .2, currentSpeed)
+    self._DebugVelocityPart.CFrame = CFrame.lookAt(root.Position, root.Position + currentVelocity) * CFrame.new(0, 0, -self._DebugVelocityPart.Size.Z/2)
     -- TODO: Apply thruster effectiveness modifiers (when a side or the aft is blown up or the ship is in a weight threshold)
 end
 
 
 -- CLIENT METHODS
 if (game:GetService("Players").LocalPlayer == nil) then return EntityShip end
+
+
+-- Attach debug
+local serverConstructor = EntityShip.new
+function EntityShip.new(...)
+    local self = serverConstructor(...)
+    self.Base.Hitboxes:Destroy()
+    self._DebugVelocityPart = DebugPart()
+    self._DebugVelocityPart.Parent = self.Base
+    return self
+end
 
 
 -- Renders this EntityShip
