@@ -12,4 +12,12 @@ return {
     EntityStation = 4;
     EntityWarpGate = 5;
     EntityShip = 6;
+
+    AttachmentTurret = 7;
+    AttachmentReactor = 8;
+    AttachmentBay = 9;
+    AttachmentAmmo = 10;
+    AttachmentRadiator = 11;
+    AttachmentAMS = 12;
+    AttachmentThruster = 13;
 }
