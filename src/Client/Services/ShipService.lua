@@ -44,7 +44,8 @@ function ShipService:SetShip(base)
     if (ship ~= nil) then
         UserShip = ship
         ProcessJobID = MetronomeService:BindToFrequency(60, ProcessUserShip)
-        UserShip.IsMyShip = true; print(UserShip.IsMyShip)
+        UserShip.IsMyShip = true
+        UserShip:Hide() -- Force reload once
         self.ShipCreated:Fire(base)
 
         self.LocalPlayer.Character.PrimaryPart.Anchored = true
