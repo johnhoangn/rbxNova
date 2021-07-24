@@ -24,7 +24,7 @@ function Entity.new(base, initialParams)
     assert(base.PrimaryPart ~= nil, "Missing primary part " .. base:GetFullName())
 
 	local self = DeepObject.new({
-        _InitialParams = initialParams;
+        InitialParams = initialParams;
         Base = base;
         SolarSystemID = base.PrimaryPart.CollisionGroupId;
         UID = initialParams.UID or HttpService:GenerateGUID();

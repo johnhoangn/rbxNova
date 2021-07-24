@@ -45,7 +45,7 @@ function EntityService:PackEntityInfo(bases)
         local entity =  EntityService:GetEntity(base)
         entities[i] = {
             Type = entity.ClassName;
-            InitialParams = entity._InitialParams;
+            InitialParams = entity.InitialParams;
         }
     end
     CacheMutex:Unlock()

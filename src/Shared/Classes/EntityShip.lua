@@ -195,7 +195,7 @@ end
 -- @param dt <float>
 function EntityShip:Draw(dt)
     if (self.Model == nil) then
-        local config = self._InitialParams.Config
+        local config = self.InitialParams.Config
         local model = self._Asset.Model:Clone()
         local hardpoints = self.Base.Hardpoints
         local turrets = self.Classes.IndexedMap.new()
