@@ -1,6 +1,9 @@
 -- BUILT-IN ENUMS MOVE NEGATIVE
 
 return {
+    RandomOverwrite = -14;
+    RandomRequest = -13;
+
 	DataChange = -12;
 	DataStream = -11;
 
@@ -25,4 +28,6 @@ return {
     WarpExit = 4;
 
     ShipControl = 5;
+
+    TurretShoot = 6;
 }
