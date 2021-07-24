@@ -4,19 +4,19 @@ Projectile.__index = Projectile
 setmetatable(Projectile, DeepObject)
 
 -- How many random numbers an instance of this class needs
-Projectile.NecessaryRandoms = 1
+-- Each random will be a float in the range [0, 1)
+Projectile.RandomsNeeded = 1
 
 
 -- Base projectile constructor
--- @param baseID <string> baseID of the turret asset for information
--- @param entity <T extends Entity> source of this projectile
--- @param turretUID <string> specific turret from entityBase that shot this
--- @param randoms <table> array of random numbers, based on Projectile.NecessaryRandoms
-function Projectile.new(baseID, entity, turretUID, target, randoms)
+-- @param turretAsset <table> turret asset for information
+-- @param turretModel <Model> specific turret that shot this
+-- @param target <BasePart> ship section part
+-- @param randoms <table> array of random numbers, based on Projectile.RandomsNeeded
+function Projectile.new(turretAsset, turretModel, target, randoms)
 	local self = setmetatable(DeepObject.new({
-        BaseID = baseID;
-        Entity = entity;
-        TurretUID = turretUID;
+        TurretAsset = turretAsset;
+        TurretModel = turretModel;
         Target = target;
         Randoms = randoms;
     }), Projectile)
@@ -30,8 +30,8 @@ function Projectile.new(baseID, entity, turretUID, target, randoms)
     )
 
     self:GetMaid(
-        entity.Base.AncestryChanged:Connect(function()
-            if (not entity.Base:IsDescendantOf(workspace)) then
+        turretModel.AncestryChanged:Connect(function()
+            if (not turretModel:IsDescendantOf(workspace)) then
                 self:Destroy()
             end
         end)
@@ -41,7 +41,7 @@ function Projectile.new(baseID, entity, turretUID, target, randoms)
 end
 
 
-function Projectile:Fire()
+function Projectile:Fire(dt)
     error("Attempt to :Fire() base class Projectile!")
 end
 

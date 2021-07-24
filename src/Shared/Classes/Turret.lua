@@ -72,7 +72,8 @@ function Turret.new(model, ...)
     local self = serverConstructor(...)
     local turretModel = self.Model
 
-    self._YawServo = Servo.new(turretModel.YawActuator,
+    self._YawServo = Servo.new(
+        turretModel.YawActuator,
         self.Model.Upper.YawActuated,
         self.YawSpeed
     )
