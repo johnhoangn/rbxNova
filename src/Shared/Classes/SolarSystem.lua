@@ -14,10 +14,12 @@ setmetatable(SolarSystem, DeepObject)
 
 -- Creates a new solar system
 -- @param universalPosition <Vector2>
-function SolarSystem.new(universalPosition)
+-- @param collisionGroupID <integer>
+function SolarSystem.new(universalPosition, collisionGroupID)
 	local self = DeepObject.new({
         UniversalPosition = universalPosition;
         ModLock = Mutex.new();
+        CollisionGroupID = collisionGroupID;
         Entities = {
             All = IndexedMap.new();
             EntityStar = IndexedMap.new();
@@ -36,6 +38,7 @@ end
 -- @param entity <T extends Entity>
 function SolarSystem:AddEntity(entity)
     self.ModLock:Lock()
+    entity.Base.PrimaryPart.CollisionGroupId = self.CollisionGroupID
     self.Entities.All:Add(entity.Base, entity)
     self.Entities[entity.ClassName]:Add(entity.Base, entity)
     self.ModLock:Unlock()

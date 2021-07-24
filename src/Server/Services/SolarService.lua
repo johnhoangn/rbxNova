@@ -9,7 +9,7 @@
 local SolarService = {Priority = 95}
 
 local Network, EntityService, DataService
-local Players
+local Players, PhysicsService
 
 local GalaxyFolder
 local Systems
@@ -58,7 +58,8 @@ end
 -- @param entities <table> array of existing entities to insert
 function SolarService:CreateSystem(systemName, entities)
     local uPosition = Vector2.new(0, 0)
-    local newSystem = self.Classes.SolarSystem.new(uPosition)
+    local collisionGroupID = PhysicsService:CreateCollisionGroup(systemName)
+    local newSystem = self.Classes.SolarSystem.new(uPosition, collisionGroupID)
 
     newSystem.Players = self.Classes.IndexedMap.new();
 
@@ -69,6 +70,20 @@ function SolarService:CreateSystem(systemName, entities)
     Systems:Add(systemName, newSystem)
 
     return newSystem
+end
+
+
+-- If all we have is a part, we have its collisionGroupID to retrieve its system
+-- @param collisionGroupID <integer>
+-- @returns <SolarSystem>
+function SolarService:GetSystemFromPhysicsGroupID(collisionGroupID)
+    for _, system in Systems:Iterator() do
+        if (system.CollisionGroupID == collisionGroupID) then
+            return system
+        end
+    end
+
+    return nil
 end
 
 
@@ -207,6 +222,7 @@ function SolarService:EngineInit()
     -- DataService = self.Services.DataService
 
     Players = self.RBXServices.Players
+    PhysicsService = self.RBXServices.PhysicsService
 
     GalaxyFolder = workspace.Galaxy
 

@@ -26,8 +26,27 @@ function Entity.new(base, initialParams)
 	local self = DeepObject.new({
         _InitialParams = initialParams;
         Base = base;
+        SolarSystemID = base.PrimaryPart.CollisionGroupId;
         UID = initialParams.UID or HttpService:GenerateGUID();
     })
+
+    self:GetMaid():GiveTask(
+        base.PrimaryPart:GetPropertyChangedSignal("CollisionGroupId"):Connect(function()
+            self.SolarSystemID = base.PrimaryPart.CollisionGroupId
+            for _, descendant in ipairs(base:GetDescendants()) do
+                if (descendant:IsA("BasePart")) then
+                    descendant.CollisionGroupId = self.SolarSystemID
+                end
+            end
+        end)
+    )
+    self:GetMaid():GiveTask(
+        base.DescendantAdded:Connect(function(descendant)
+            if (descendant:IsA("BasePart")) then
+                descendant.CollisionGroupId = self.SolarSystemID
+            end
+        end)
+    )
 
     if (initialParams ~= nil) then
         for k, v in pairs(initialParams) do
