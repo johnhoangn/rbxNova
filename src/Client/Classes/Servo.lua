@@ -33,7 +33,7 @@ function Servo.new(actuator, actuated, speed)
 
         Actuator = actuator;
         Actuated = actuated;
-        Speed = speed or 360; -- avoids excessive RAD calls in :Step()
+        Speed = speed or 720;
         Angle = 0;
         Goal = 0;
         Delta = 0;
