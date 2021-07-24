@@ -43,6 +43,12 @@ local function ManageUser(user)
         Ship = ship;
     })
 
+    user.AncestryChanged:Connect(function()
+        if (not user:IsDescendantOf(Players)) then
+            ActiveUsers:Remove(user)
+        end
+    end)
+
     -- TODO: Take control if the user leaves, and return it if they rejoin
 
     local attemptsLeft = 3
@@ -145,7 +151,7 @@ function ShipService:CreateShip(baseID, config, status, user)
                 attachModel:SetPrimaryPartCFrame(hardpoint.PrimaryPart.CFrame)
                 self.Modules.WeldUtil:WeldParts(attachModel.PrimaryPart, hardpoint.PrimaryPart)
                 attachModel.Name = uid
-                attachModel.Parent = modelSection
+                attachModel.Parent = modelSection.Attachments
             end
         end
     end
