@@ -34,7 +34,7 @@ if (game:GetService("Players").LocalPlayer == nil) then return EntityCelestial e
 
 -- Renders this EntityCelestial
 function EntityCelestial:Draw()
-    if (self._Model == nil) then
+    if (self.Model == nil) then
         local model = self._Asset.Model:Clone()
         local parts = {}
 
@@ -47,7 +47,7 @@ function EntityCelestial:Draw()
         model:SetPrimaryPartCFrame(self.Base.PrimaryPart.CFrame)
         model.Parent = self.Base
         self.Modules.WeldUtil:WeldParts(model.PrimaryPart, self.Base.PrimaryPart)
-        self._Model = model
+        self.Model = model
         self._Parts = parts
     end
 end
@@ -61,8 +61,8 @@ end
 
 -- Removes the model
 function EntityCelestial:Hide()
-    self._Model:Destroy()
-    self._Model = nil
+    self.Model:Destroy()
+    self.Model = nil
     self._Parts = nil
 end
 
