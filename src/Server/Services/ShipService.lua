@@ -127,7 +127,7 @@ function ShipService:CreateShip(baseID, config, status, user)
     self.Modules.WeldUtil:WeldParts(hitboxes.PrimaryPart, base.PrimaryPart)
     hitboxes.Parent = base
 
-    -- Hardpoints, used for server's hit detection
+    -- Hardpoints, used for hit detection
     -- TODO: in ship combat: add AND subtract ship's velocity * ping for origins of two raycasts as a barebones netcode solution
     hardpoints:SetPrimaryPartCFrame(base.PrimaryPart.CFrame)
     self.Modules.WeldUtil:WeldParts(hardpoints.PrimaryPart, base.PrimaryPart)
@@ -177,6 +177,11 @@ end
 -- @returns <EntityShip>
 function ShipService:GetShip(base)
     return NPCShips:Get(base) or UserShips:Get(base)
+end
+
+
+function ShipService:GetUserShip(user)
+    return ActiveUsers:Get(user).Ship
 end
 
 
