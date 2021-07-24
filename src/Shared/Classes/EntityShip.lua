@@ -193,8 +193,7 @@ end
 
 -- Renders this EntityShip
 -- @param dt <float>
--- @param isMyShip <boolean> if this is the local user's ship
-function EntityShip:Draw(dt, isMyShip)
+function EntityShip:Draw(dt)
     if (self.Model == nil) then
         local config = self._InitialParams.Config
         local model = self._Asset.Model:Clone()
@@ -222,8 +221,8 @@ function EntityShip:Draw(dt, isMyShip)
                             hardpoint,
                             uid,
                             turretAsset,
-                            isMyShip and 90 or nil,
-                            isMyShip and 90 or nil,
+                            self.IsMyShip and 90 or nil,
+                            self.IsMyShip and 90 or nil,
                             NumberRange.new(-120, 120),
                             NumberRange.new(-15, 80)
                         )
