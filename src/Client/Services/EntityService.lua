@@ -61,7 +61,7 @@ local function RenderJob(dt)
         local function ProcessEntity(base, entity)
             -- Async due to potential asset downloads
             if (DistanceTo(entity) < RENDER_DISTANCE) then
-                entity:Draw()
+                entity:Draw(dt)
             else
                 table.insert(RenderBuffer, base)
             end
@@ -122,6 +122,7 @@ end
 -- @param base <Model>
 -- @param download <boolean>, download if we don't have it (and are allowed)
 -- @returns <T extends Entity>
+-- @returns <boolean> if visible
 function EntityService:GetEntity(base, download)
     local entity = AllEntities:Get(base)
 
@@ -132,7 +133,7 @@ function EntityService:GetEntity(base, download)
         ):Wait()
     end
 
-    return entity
+    return entity, entity ~= nil and entity.Model ~= nil
 end
 
 
@@ -220,7 +221,7 @@ end
 function EntityService:Enable(state)
     if (state) then
         -- TODO: configuration for render-update-rate
-        RenderJobID = MetronomeService:BindToFrequency(5, RenderJob)
+        RenderJobID = MetronomeService:BindToFrequency(15, RenderJob)
     else
         MetronomeService:Unbind(RenderJobID)
     end
