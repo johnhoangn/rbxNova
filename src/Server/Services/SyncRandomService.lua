@@ -51,6 +51,12 @@ end
 -- @returns <float>
 function SyncRandomService:NextNumber(uid, user, clientNum)
     local rand = ActiveRandoms:Get(uid)
+
+    if (rand == nil) then
+        warn("Nil rand", user)
+        return 0
+    end
+
     local number = rand.Object:NextNumber()
 
     if (number == clientNum) then
@@ -80,6 +86,12 @@ end
 -- @returns <integer>
 function SyncRandomService:NextInteger(uid, lower, upper, user, clientNum)
     local rand = ActiveRandoms:Get(uid)
+
+    if (rand == nil) then
+        warn("Nil rand", user)
+        return 0
+    end
+
     local number = rand.Object:NextInteger(lower, upper)
 
     if (number == clientNum) then
