@@ -170,34 +170,41 @@ end
 if (game:GetService("Players").LocalPlayer == nil) then return EntityShip end
 
 
--- Attach debug
+-- Clientside constructor
 local serverConstructor = EntityShip.new
 function EntityShip.new(...)
     local self = serverConstructor(...)
+
+    -- Hitboxes will get in the way of effect rendering; store their offsets for
+    --  targeting and delete the parts
+    self.SectionOffsets = {};
+    for _, section in ipairs(self.Base.Hitboxes:GetChildren()) do
+        self.SectionOffsets[section.Name] = self._Root.Position - section.Position
+    end
     self.Base.Hitboxes:Destroy()
-    self.Base.Hardpoints:Destroy()
+
+    -- Attach debug
     self._DebugVelocityPart = DebugPart()
     self._DebugVelocityPart.Parent = self.Base
+
     return self
 end
 
 
 -- Renders this EntityShip
-function EntityShip:Draw()
-    if (self._Model == nil) then
+-- @param dt <float>
+-- @param isMyShip <boolean> if this is the local user's ship
+function EntityShip:Draw(dt, isMyShip)
+    if (self.Model == nil) then
         local config = self._InitialParams.Config
         local model = self._Asset.Model:Clone()
-        local hardpoints = self._Asset.Hardpoints:Clone()
- 
+        local hardpoints = self.Base.Hardpoints
+        local turrets = self.Classes.IndexedMap.new()
+
         -- Stick the chassis on the base
         model:SetPrimaryPartCFrame(self.Base.PrimaryPart.CFrame)
         model.Parent = self.Base
         self.Modules.WeldUtil:WeldParts(model.PrimaryPart, self.Base.PrimaryPart)
-
-        -- Hardpoints
-        hardpoints:SetPrimaryPartCFrame(model.PrimaryPart.CFrame)
-        self.Modules.WeldUtil:WeldParts(hardpoints.PrimaryPart, model.PrimaryPart)
-        hardpoints.Parent = model
 
         for section, sectionData in pairs(config.Sections) do
             local modelSection = hardpoints:FindFirstChild(section)
@@ -205,12 +212,22 @@ function EntityShip:Draw()
             if (modelSection == nil) then continue end
             for uid, attachmentData in pairs(sectionData.Attachments) do
                 if (attachmentData.Hardpoint ~= nil) then
-                    local attachModel = AssetService:GetAsset(attachmentData.BaseID, self.Base).Model:Clone()
-                    local attachPart = modelSection[attachmentData.Hardpoint]
+                    local turretAsset = AssetService:GetAsset(attachmentData.BaseID, self.Base)
+                    local hardpoint = modelSection[attachmentData.Hardpoint]
 
-                    attachModel:SetPrimaryPartCFrame(attachPart.CFrame)
-                    self.Modules.WeldUtil:WeldParts(attachModel.PrimaryPart, attachPart)
-                    attachModel.Parent = modelSection
+                    -- TODO: Remove hardcoding, retrieve turret ranges from asset, etc.
+                    turrets:Add(uid,
+                        self.Classes.Turret.new(
+                            model,
+                            hardpoint,
+                            uid,
+                            turretAsset,
+                            isMyShip and 90 or nil,
+                            isMyShip and 90 or nil,
+                            NumberRange.new(-120, 120),
+                            NumberRange.new(-15, 80)
+                        )
+                    )
                 end
             end
         end
@@ -223,10 +240,17 @@ function EntityShip:Draw()
             end
         end
 
-        self._Model = model
+        self.Model = model
         self._Parts = parts
+        self._Turrets = turrets
     else
         -- Animate EntityShip components
+        if (self._Turrets ~= nil) then
+            for _, turret in self._Turrets:Iterator() do
+                turret:PointAt(workspace.b.Position)
+                turret:Step(dt)
+            end
+        end
     end
 end
 
@@ -239,9 +263,10 @@ end
 
 -- Removes the model
 function EntityShip:Hide()
-    self._Model:Destroy()
-    self._Model = nil
+    self.Model:Destroy()
+    self.Model = nil
     self._Parts = nil
+    self._Turrets = nil
 end
 
 
