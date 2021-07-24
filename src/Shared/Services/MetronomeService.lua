@@ -25,6 +25,7 @@ function MetronomeService:BindToFrequency(frequency, callback)
 		Frequencies[frequency] = frequencyTasks
     else
         frequencyTasks.Tasks[taskID] = callback
+        frequencyTasks.NumTasks += 1
     end
 
     Tasks[taskID] = {
@@ -66,6 +67,8 @@ function MetronomeService:EngineStart()
                 frequencyGroup.SinceLastTick += dt
 
                 if (frequencyGroup.SinceLastTick >= period) then
+                    local sinceLastTick = frequencyGroup.SinceLastTick
+
                     frequencyGroup.SinceLastTick = 0
 
                     for taskID, callback in pairs(frequencyGroup.Tasks) do
@@ -73,7 +76,9 @@ function MetronomeService:EngineStart()
                             self.Modules.ThreadUtil.Spawn(function()
                                 if (Tasks[taskID] ~= nil) then
                                     Tasks[taskID].Working = true
-                                    callback(period)
+                                    callback(sinceLastTick)
+                                end
+                                if (Tasks[taskID] ~= nil) then
                                     Tasks[taskID].Working = false
                                 end
                             end)
@@ -98,6 +103,8 @@ function MetronomeService:EngineStart()
                                 if (Tasks[taskID] ~= nil) then
                                     Tasks[taskID].Working = true
                                     callback(period)
+                                end
+                                if (Tasks[taskID] ~= nil) then
                                     Tasks[taskID].Working = false
                                 end
                             end)
