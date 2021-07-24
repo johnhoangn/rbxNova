@@ -16,6 +16,8 @@ local Effect = {}
 Effect.__index = Effect
 setmetatable(Effect, DeepObject)
 
+local OUT_OF_RENDER = CFrame.new(0, 1e9, 0)
+
 
 function Effect.new(effectAsset)
     local effectModule = require(effectAsset.EffectModule)
@@ -32,7 +34,10 @@ function Effect.new(effectAsset)
 
     self.BaseID = baseID
     self.Model = effectAsset.Model:Clone()
+    self.Model.Name = effectAsset.AssetName
     self.Module = effectModule
+
+    self.Model:SetPrimaryPartCFrame(OUT_OF_RENDER)
 
     self:AddSignal("OnPlay")
     self:AddSignal("OnStop")
@@ -43,10 +48,10 @@ function Effect.new(effectAsset)
 end
 
 
-function Effect:Play(...)
+function Effect:Play(dt, ...)
     if (self.State ~= self.Enums.EffectState.Stopped) then
         self.State = self.Enums.EffectState.Playing
-        self.Module:Play(...)
+        self.Module.Play(self, dt, ...)
         self:Stop(...)
     else
         warn("Attempt to play non-ready effect ", self)
@@ -54,32 +59,33 @@ function Effect:Play(...)
 end
 
 
-function Effect:Change(...)
+function Effect:Change(dt, ...)
     if (self.State ~= self.Enums.EffectState.Stopped) then
-        self.Module:Change(...)
+        self.Module.Change(self, dt, ...)
     else
         warn("Attempt to change stopped effect ", self)
     end
 end
 
 
-function Effect:Stop(...)
+function Effect:Stop(dt, ...)
     if (self.State == self.Enums.EffectState.Playing) then
         self.State = self.Enums.EffectState.Stopped
-        self.Module:Stop(...)
+        self.Module.Stop(self, dt, ...)
         self.OnStop:Fire()
     end
 end
 
 
 function Effect:Reset(...)
-    self.Module:Reset(...)
+    self.Model:SetPrimaryPartCFrame(OUT_OF_RENDER)
+    self.Module.Reset(self, ...)
     self.State = self.Enums.EffectState.Ready
 end
 
 
 function Effect:Destroy(...)
-    self.Module:Destroy(...)
+    self.Module.Destroy(self, ...)
     self.OnDestroy:Fire()
 
     self.OnPlay:Destroy()
