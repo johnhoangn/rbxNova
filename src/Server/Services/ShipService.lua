@@ -140,10 +140,11 @@ function ShipService:CreateShip(baseID, config, status, user)
         for uid, attachmentData in pairs(sectionData.Attachments) do
             if (attachmentData.Hardpoint ~= nil) then
                 local attachModel = AssetService:GetAsset(attachmentData.BaseID).Model:Clone()
-                local attachPart = modelSection[attachmentData.Hardpoint]
+                local hardpoint = modelSection[attachmentData.Hardpoint]
 
-                attachModel:SetPrimaryPartCFrame(attachPart.CFrame)
-                self.Modules.WeldUtil:WeldParts(attachModel.PrimaryPart, attachPart)
+                attachModel:SetPrimaryPartCFrame(hardpoint.PrimaryPart.CFrame)
+                self.Modules.WeldUtil:WeldParts(attachModel.PrimaryPart, hardpoint.PrimaryPart)
+                attachModel.Name = uid
                 attachModel.Parent = modelSection
             end
         end
