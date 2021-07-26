@@ -45,8 +45,10 @@ function ShipService:SetShip(base)
         UserShip = ship
         ProcessJobID = MetronomeService:BindToFrequency(60, ProcessUserShip)
         UserShip.IsMyShip = true
-        UserShip:Hide() -- Force reload once
-        self.ShipCreated:Fire(base)
+
+		if (UserShip.Model ~= nil) then
+        	UserShip:Hide() -- Force reload once
+		end
 
         self.LocalPlayer.Character.PrimaryPart.Anchored = true
         workspace.CurrentCamera.CameraSubject = base
@@ -140,6 +142,7 @@ function ShipService:EnableControls(state)
     end
 
     self.ControlsEnabled = state
+    self.EnableStateChanged:Fire(state)
 end
 
 
@@ -151,7 +154,7 @@ function ShipService:EngineInit()
 
     Mouse = self.LocalPlayer:GetMouse()
 
-    self.ShipCreated = self.Classes.Signal.new()
+    self.EnableStateChanged = self.Classes.Signal.new()
     self.ControlsEnabled = false
 end
 
