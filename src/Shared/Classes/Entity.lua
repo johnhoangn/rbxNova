@@ -12,7 +12,6 @@ setmetatable(Entity, DeepObject)
 
 local HttpService
 
-
 -- Normal constructor
 -- @param base <Model>
 -- @param initialParams <table> == nil, convenience for entity subclasses
@@ -30,23 +29,26 @@ function Entity.new(base, initialParams)
 		UID = initialParams.UID or HttpService:GenerateGUID();
 	})
 
-	self:GetMaid():GiveTask(
-		base.PrimaryPart:GetPropertyChangedSignal("CollisionGroupId"):Connect(function()
-			self.SolarSystemID = base.PrimaryPart.CollisionGroupId
-			for _, descendant in ipairs(base:GetDescendants()) do
+	-- Server sided system id handling
+	if (game:GetService("Players").LocalPlayer == nil) then
+		self:GetMaid():GiveTask(
+			base.PrimaryPart:GetPropertyChangedSignal("CollisionGroupId"):Connect(function()
+				self.SolarSystemID = base.PrimaryPart.CollisionGroupId
+				for _, descendant in ipairs(base:GetDescendants()) do
+					if (descendant:IsA("BasePart")) then
+						descendant.CollisionGroupId = self.SolarSystemID
+					end
+				end
+			end)
+		)
+		self:GetMaid():GiveTask(
+			base.DescendantAdded:Connect(function(descendant)
 				if (descendant:IsA("BasePart")) then
 					descendant.CollisionGroupId = self.SolarSystemID
 				end
-			end
-		end)
-	)
-	self:GetMaid():GiveTask(
-		base.DescendantAdded:Connect(function(descendant)
-			if (descendant:IsA("BasePart")) then
-				descendant.CollisionGroupId = self.SolarSystemID
-			end
-		end)
-	)
+			end)
+		)
+	end
 
 	if (initialParams ~= nil) then
 		for k, v in pairs(initialParams) do
@@ -92,10 +94,38 @@ if (game:GetService("Players").LocalPlayer == nil) then return Entity end
 -- Client constructor variant, adds on data that only the client needs
 local new = Entity.new
 function Entity.new(...)
-	local newEntity = new(...)
-	newEntity._LastOpacity = Entity.Enums.Opacity.Opaque;
-	newEntity._Opacity = Entity.Enums.Opacity.Opaque;
-	return newEntity
+	local self = new(...)
+
+	self._LastOpacity = Entity.Enums.Opacity.Opaque;
+	self._Opacity = Entity.Enums.Opacity.Opaque;
+
+	self:SetCollisions()
+	self:GetMaid():GiveTask(
+		-- The server's constructor will be setting the id for all parts
+		--	so the client only needs to re-update the hitbox parts
+		self.Base.PrimaryPart:GetPropertyChangedSignal("CollisionGroupId"):Connect(function()
+			self:SetCollisions()
+		end)
+	)
+
+	return self
+end
+
+
+-- Hitboxes will get in the way of effect rendering; force their collision groups to default (none)
+-- This is a client-sided change so the server will still hit
+function Entity:SetCollisions()
+	local hitboxes = self.Base:FindFirstChild("Hitboxes")
+	local model = self.Model
+
+	if (hitboxes ~= nil) then
+		for _, d in ipairs(hitboxes:GetDescendants()) do
+			if (d:IsA("BasePart")) then
+				d.CollisionGroupId = 0
+				d.Transparency = 1 -- Also get this while we're at it
+			end
+		end
+	end
 end
 
 
