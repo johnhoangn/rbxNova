@@ -10,6 +10,7 @@ local ShipService = {Priority = 80}
 local AssetService, SolarService, EntityService, Network, DataService
 local Players
 
+local HardpointType
 local NPCShips, NPCShipsMutex, NPCProcessJobID
 local UserShips, UserShipsMutex
 local ActiveUsers
@@ -111,10 +112,10 @@ function ShipService:CreateShip(baseID, config, status, user)
     base:SetAttribute("SpeedYaw", asset.ShipData.SpeedYaw)
 
     for section, sectionData in pairs(config.Sections) do
-        base:SetAttribute("MaxShield" .. section, sectionData.Shields)
+        base:SetAttribute("MaxShield" .. section, sectionData.Shield)
         base:SetAttribute("MaxArmor" .. section, sectionData.Armor)
         base:SetAttribute("MaxHull" .. section, asset.ShipData.Sections[section].Hull)
-        base:SetAttribute("Shield" .. section, sectionData.Shields)
+        base:SetAttribute("Shield" .. section, sectionData.Shield)
         base:SetAttribute("Armor" .. section, sectionData.Armor)
         base:SetAttribute("Hull" .. section, asset.ShipData.Sections[section].Hull)
     end
@@ -127,6 +128,7 @@ function ShipService:CreateShip(baseID, config, status, user)
 
     local hitboxes = asset.Hitboxes:Clone()
     local hardpoints = asset.Hardpoints:Clone()
+	local turrets = self.Classes.IndexedMap.new()
 
     -- Hitboxes (will be deleted locally on clients)
     hitboxes:SetPrimaryPartCFrame(base.PrimaryPart.CFrame)
@@ -145,16 +147,31 @@ function ShipService:CreateShip(baseID, config, status, user)
         if (modelSection == nil) then continue end
         for uid, attachmentData in pairs(sectionData.Attachments) do
             if (attachmentData.Hardpoint ~= nil) then
-                local attachModel = AssetService:GetAsset(attachmentData.BaseID).Model:Clone()
+				local attachAsset = AssetService:GetAsset(attachmentData.BaseID)
                 local hardpoint = modelSection[attachmentData.Hardpoint]
+				local hardpointType = hardpoint.Type.Value
 
-                attachModel:SetPrimaryPartCFrame(hardpoint.PrimaryPart.CFrame)
-                self.Modules.WeldUtil:WeldParts(attachModel.PrimaryPart, hardpoint.PrimaryPart)
-                attachModel.Name = uid
-                attachModel.Parent = modelSection.Attachments
+				-- The attachment won't be here if it weren't allowed to be placed in the first place
+				--	so just check the hardpoint type
+				if (hardpointType == self.Enums.HardpointType.Energy
+					or hardpointType == self.Enums.HardpointType.Ballistic) then
+
+					turrets:Add(uid,
+						self.Classes.Turret.new(
+							hardpoint,
+							uid,
+							attachAsset,
+							attachAsset.TurnSpeed,
+							NumberRange.new(hardpoint.YawMin.Value, hardpoint.YawMax.Value),
+							NumberRange.new(hardpoint.PitchMin.Value, hardpoint.PitchMax.Value)
+						)
+					)
+				end
             end
         end
     end
+
+	ship.Turrets = turrets
 
     -- Finalized
     base.Name = ship._Asset.AssetName
@@ -228,6 +245,8 @@ function ShipService:EngineInit()
     ActiveUsers = self.Classes.IndexedMap.new()
 
     self.ShipCreated = self.Classes.Signal.new()
+
+	HardpointType = self.Enums.HardpointType
 end
 
 

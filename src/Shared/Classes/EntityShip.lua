@@ -95,6 +95,10 @@ function EntityShip.new(base, initialParams)
 		Value = 0;
 	}
 
+	-- Attach debug
+	self._DebugVelocityPart = DebugPart()
+	self._DebugVelocityPart.Parent = self.Base
+
 	return setmetatable(self, EntityShip)
 end
 
@@ -175,18 +179,6 @@ local serverConstructor = EntityShip.new
 function EntityShip.new(...)
 	local self = serverConstructor(...)
 
-	-- Hitboxes will get in the way of effect rendering; store their offsets for
-	--  targeting and delete the parts
-	self.SectionOffsets = {};
-	for _, section in ipairs(self.Base.Hitboxes:GetChildren()) do
-		self.SectionOffsets[section.Name] = self._Root.Position - section.Position
-	end
-	self.Base.Hitboxes:Destroy()
-
-	-- Attach debug
-	self._DebugVelocityPart = DebugPart()
-	self._DebugVelocityPart.Parent = self.Base
-
 	return self
 end
 
@@ -206,36 +198,43 @@ function EntityShip:Draw(dt)
 		self.Modules.WeldUtil:WeldParts(model.PrimaryPart, self.Base.PrimaryPart)
 
 		for section, sectionData in pairs(config.Sections) do
-			local modelSection = hardpoints:FindFirstChild(section)
+			local shipSection = hardpoints:FindFirstChild(section)
 
-			if (modelSection == nil) then continue end
+			if (shipSection == nil) then continue end
 			for uid, attachmentData in pairs(sectionData.Attachments) do
 				if (attachmentData.Hardpoint ~= nil) then
-					local turretAsset = AssetService:GetAsset(attachmentData.BaseID, self.Base)
-					local hardpoint = modelSection[attachmentData.Hardpoint]
+					local attachAsset = AssetService:GetAsset(attachmentData.BaseID)
+					local hardpoint = shipSection[attachmentData.Hardpoint]
+					local hardpointType = hardpoint.Type.Value
 
-					-- TODO: Remove hardcoding, retrieve turret ranges from asset, etc.
-					turrets:Add(uid,
-						self.Classes.Turret.new(
-							model,
-							hardpoint,
-							uid,
-							turretAsset,
-							self.IsMyShip and 90 or nil,
-							self.IsMyShip and 90 or nil,
-							NumberRange.new(-120, 120),
-							NumberRange.new(-15, 80)
+					-- The attachment won't be here if it weren't allowed to be placed in the first place
+					--	so just check the hardpoint type.
+					-- NOTE: TO PROGRAMMER IN THE FUTURE. THIS IS REDUNDANT ON PURPOSE AS WE HAVE
+					--	TO RE-INSTANTIATE TURRETS WHEN THE MODEL IS RE-DRAWN
+					if (hardpointType == self.Enums.HardpointType.Energy
+						or hardpointType == self.Enums.HardpointType.Ballistic) then
+						turrets:Add(uid,
+							self.Classes.Turret.new(
+								model,
+								hardpoint,
+								uid,
+								attachAsset,
+								attachAsset.TurnSpeed,
+								NumberRange.new(hardpoint.YawMin.Value, hardpoint.YawMax.Value),
+								NumberRange.new(hardpoint.PitchMin.Value, hardpoint.PitchMax.Value)
+							)
 						)
-					)
+					end
 				end
 			end
 		end
 
-		-- Opacity aesthetics
+		-- Aesthetics
 		local parts = {}
 		for _, part in ipairs(model:GetDescendants()) do
 			if (part:IsA("BasePart") and part.Transparency < 1) then
 				parts[part] = part.Transparency
+				part.CollisionGroupId = self.Base.PrimaryPart.CollisionGroupId
 			end
 		end
 
@@ -246,7 +245,6 @@ function EntityShip:Draw(dt)
 		-- Animate EntityShip components
 		if (self.Turrets ~= nil) then
 			for _, turret in self.Turrets:Iterator() do
-				turret:PointAt(workspace.b.Position)
 				turret:Step(dt)
 			end
 		end
