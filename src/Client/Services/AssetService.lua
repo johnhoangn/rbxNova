@@ -91,7 +91,7 @@ end
 -- Retrieves a cached asset or downloads it via baseID
 -- @param baseID <string> of the form XXYYYY, XX: ClassID, YYYY: AssetID
 -- @return the indexed asset <table>
-function AssetService:GetAsset(baseID, dbg)
+function AssetService:GetAsset(baseID)
 	local cached = AssetCache:Get(baseID)
 
 	if (cached ~= nil) then
