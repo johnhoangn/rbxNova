@@ -8,6 +8,7 @@ local Servo = {}
 Servo.__index = Servo
 
 
+local TAU = math.pi * 2
 local ZERO_VECTOR = Vector3.new()
 local ABS = math.abs
 local SIGN = math.sign
@@ -19,36 +20,40 @@ local RAD = math.rad
 --  so make sure the actuated's assembly's root is in fact the actuated part
 -- Pivots about the actuator part's local Y axis
 -- !! NOTE: Does not replicate when used on client !!
--- @param actuator <BasePart> serves as the servo motor
--- @param actuated <BasePart> this is rotated by the motor
+-- @param actuator <BasePart> == nil, serves as the servo motor. nil when lua only
+-- @param actuated <BasePart> == nil, this is rotated by the motor. nil when lua only
 -- @param speed <float> [0, INF) == 360 in degrees/s
 -- @returns <Servo>
 function Servo.new(actuator, actuated, speed)
-    local weld = Instance.new("WeldConstraint")
-    local relative = actuator.CFrame:ToObjectSpace(actuated.CFrame)
-
     local self = setmetatable({
-        _Relative = relative;
-        _Weld = weld;
-
         Actuator = actuator;
         Actuated = actuated;
-        Speed = speed or 720;
+
+        Speed = RAD(speed or 720);
         Angle = 0;
         Goal = 0;
         Delta = 0;
     }, Servo)
 
-    if (actuated.AssemblyRootPart ~= actuated) then
-        warn("Actuated assembly's root is not the actuated part!", actuated:GetFullName())
-    end
+	if (actuator ~= nil) then
+		local weld = Instance.new("WeldConstraint")
 
-    actuated:PivotTo(actuator.CFrame)
+		if (actuated.AssemblyRootPart ~= actuated) then
+			warn("Actuated assembly's root is not the actuated part!", actuated:GetFullName())
+		end
 
-    weld.Name = "Servo [" .. actuator.Name .. ", " .. actuated.Name .. "]"
-    weld.Part0 = actuator
-    weld.Part1 = actuated
-    weld.Parent = actuator
+		actuated:PivotTo(actuator.CFrame)
+
+		weld.Name = "Servo [" .. actuator.Name .. ", " .. actuated.Name .. "]"
+		weld.Part0 = actuator
+		weld.Part1 = actuated
+		weld.Parent = actuator
+
+		self._Weld = weld
+		self._Relative = actuator.CFrame:ToObjectSpace(actuated.CFrame)
+	else
+		self._LuaOnly = true
+	end
 
 	return setmetatable(self, Servo)
 end
@@ -100,7 +105,8 @@ end
 
 -- @param angle <float> (-360, 360)
 function Servo:SetGoal(angle)
-    self.Goal = SIGN(angle) * (ABS(angle) % 360)
+	angle = RAD(angle)
+    self.Goal = SIGN(angle) * (ABS(angle) % TAU)
     self.Delta = self.Goal - self.Angle
 end
 
@@ -121,11 +127,13 @@ function Servo:Step(dt)
 
         self.Delta = self.Goal - self.Angle
 
-        -- Apply
-        self._Weld.Enabled = false
-        self.Actuated.CFrame = self.Actuator.CFrame * self._Relative * CFrame.Angles(0, RAD(self.Angle), 0)
-        self._Weld.Enabled = true
-    end
+		if (not self._LuaOnly) then
+			-- Apply
+			self._Weld.Enabled = false
+			self.Actuated.CFrame = self.Actuator.CFrame * self._Relative * CFrame.Angles(0, self.Angle, 0)
+			self._Weld.Enabled = true
+	    end
+	end
 end
 
 
