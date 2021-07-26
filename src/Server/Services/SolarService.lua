@@ -52,13 +52,29 @@ local function PackSystemEntities(system)
 end
 
 
+-- Makes sure the new system is completely independent from others
+-- @param systemName <string>
+-- @returns <integer>
+local function ReserveCollisionGroup(systemName)
+	local id = PhysicsService:CreateCollisionGroup(systemName)
+
+	for _, groupInfo in pairs(PhysicsService:GetCollisionGroups()) do
+		if (groupInfo.name ~= systemName) then
+			PhysicsService:CollisionGroupSetCollidable(groupInfo.name, systemName, false)
+		end
+	end
+
+	return id
+end
+
+
 -- Creates a new system and logs it
 -- @param systemName <string>
 -- @param uPosition <Vector2> universal position
 -- @param entities <table> array of existing entities to insert
 function SolarService:CreateSystem(systemName, entities)
     local uPosition = Vector2.new(0, 0)
-    local collisionGroupID = PhysicsService:CreateCollisionGroup(systemName)
+    local collisionGroupID = ReserveCollisionGroup(systemName) 
     local newSystem = self.Classes.SolarSystem.new(uPosition, collisionGroupID)
 
     newSystem.Players = self.Classes.IndexedMap.new();
