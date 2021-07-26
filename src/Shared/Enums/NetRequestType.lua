@@ -30,4 +30,6 @@ return {
     ShipControl = 5;
 
     TurretShoot = 6;
+	TurretTarget = 7; -- Used only for users to replicate their targeting, server does it automatically
+	TurretMode = 8; -- Used only for users to replicate their mode switching, server does it automatically
 }

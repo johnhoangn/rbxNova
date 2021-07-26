@@ -3,18 +3,12 @@ local ProjectileBeam = {}
 ProjectileBeam.__index = ProjectileBeam
 setmetatable(ProjectileBeam, Projectile)
 
-ProjectileBeam.RandomsNeeded = 4
-
-local TAU = math.pi * 2
-local RAD = math.rad
-
 
 -- Beam constructor
-function ProjectileBeam.new(turretAsset, turretModel, target, randoms)
+function ProjectileBeam.new(turret, target, randoms)
 	local self = setmetatable(
         Projectile.new(
-            turretAsset,
-            turretModel,
+            turret,
             target,
             randoms
         ),
@@ -30,43 +24,92 @@ end
 -- @param excludedUser <Player> == nil, user who shot the turret, nil if NPC controlled
 function ProjectileBeam:Fire(dt, excludedUser)
     local EffectService = self.Services.EffectService
+    local Generate = self.Modules.ProjectileAlgorithms.ProjectileBeam.Generate
+    local offset1, offset2 = Generate(self.Turret, self.Target, self.Randoms)
+	local duration = self.Turret.Asset.Duration
+	local elapsed = 0
+	local hitDetectionJobID
 
-    -- Straight line towards the target, generate new basis vectors for offsets
-    local targetPos = self.Target.Position
-    local targetVector = targetPos - self.TurretModel.PitchOrigin.Position
+	local rayParams = RaycastParams.new()
 
-    -- Using the new basis, generate two points the beam will sweep across
-    -- TODO: reduce angles based on skills
-    local rotation1 = self.Randoms[1] * TAU
-    local rotation2 = self.Randoms[2] * TAU
-    local pitch1 = (self.Randoms[3] - 0.5) * 2 * RAD(self.TurretAsset.Spread)
-    local pitch2 = (self.Randoms[4] - 0.5) * 2 * RAD(self.TurretAsset.Spread)
-    local orientation1 = CFrame.fromAxisAngle(targetVector, rotation1)
-    local orientation2 = CFrame.fromAxisAngle(targetVector, rotation2)
-    local offset1 = (orientation1 * CFrame.fromAxisAngle(orientation1.UpVector, pitch1)).Position
-    local offset2 = (orientation2 * CFrame.fromAxisAngle(orientation2.UpVector, pitch2)).Position
---[[
+	-- Why's this gotta be so long Roblox
+	rayParams.CollisionGroup = game:GetService("PhysicsService")
+		:GetCollisionGroupName(self.Turret.Hardpoint.PrimaryPart.CollisionGroupId)
+	rayParams.FilterDescendantsInstances = { self.Turret.Hardpoint.Parent.Parent.Parent, workspace.GalacticBaseplate }
+	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
+
+	hitDetectionJobID = self.Services.MetronomeService:BindToFrequency(4, function(dt)
+		elapsed += dt
+		if (elapsed >= duration) then
+			self.Services.MetronomeService:Unbind(hitDetectionJobID)
+		else
+			local hardPointPos = self.Turret.PitchOrigin.Position
+			local sweepProgress = (offset2 - offset1) * (elapsed/duration)
+			local targetPos = self.Target.Position + offset1 + sweepProgress
+			local targetVector = targetPos - hardPointPos
+			local rayResults = self.Modules.RayUtil:CastSimple(hardPointPos, targetVector + targetVector.Unit * 5, rayParams)
+			local distance
+
+			-- TODO: DamageService:Damage(targetBase, sourceBase, section, value)
+			-- TODO: EntityService:GetEntityFromDescendant()
+			if (rayResults ~= nil) then
+				local hit = rayResults.Instance
+				local entityBase = hit.Parent.Parent
+				local shield = entityBase:GetAttribute("Shield" .. hit.Name)
+				local armor = entityBase:GetAttribute("Armor" .. hit.Name)
+				local hull = entityBase:GetAttribute("Hull" .. hit.Name)
+				local damage = (elapsed/duration) * self.Turret.Asset.Damage
+
+				if (shield ~= nil) then
+					if (shield > 0) then
+						entityBase:SetAttribute("Shield" .. hit.Name, shield - damage)
+					elseif (armor > 0) then
+						entityBase:SetAttribute("Armor" .. hit.Name, armor - damage)
+					elseif (hull > 0) then
+						entityBase:SetAttribute("Hull" .. hit.Name, hull - damage)
+						-- TODO: Damage core if this hitbox got blown up
+					else
+						print("Blew up", hit)
+					end
+				end
+			end
+		end
+	end)
+
+	self:GetMaid():GiveTask(function()
+		if (duration > 0) then
+			self.Services.MetronomeService:Unbind(hitDetectionJobID)
+		end
+	end)
+
     if (excludedUser) then
         local beamFx = EffectService:MakeBut(
             excludedUser,
-            "FD" .. self.TurretAsset.EffectID, nil,
-            self.TurretModel,
+            "FD" .. self.Turret.Asset.EffectID,
+            0,
+            self.Turret.Hardpoint,
+			self.Turret.UID,
             self.Target,
             offset1,
             offset2,
-            nil, nil, 1
+            self.Turret.Asset.BeamColor,
+			self.Turret.Asset.ProjectileRange,
+			self.Turret.Asset.Duration
         )
-    else--]]
+    else
         local beamFx = EffectService:Make(
-            "FD" .. self.TurretAsset.EffectID,
-            nil,
-            self.TurretModel,
+            "FD" .. self.Turret.Asset.EffectID,
+            0,
+            self.Turret.Hardpoint,
+			self.Turret.UID,
             self.Target,
             offset1,
             offset2,
-            nil, nil, 1
+            self.Turret.Asset.BeamColor,
+			self.Turret.Asset.ProjectileRange,
+			self.Turret.Asset.Duration
         )
-   -- end
+   end
 end
 
 

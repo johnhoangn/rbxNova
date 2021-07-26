@@ -3,20 +3,13 @@ local Projectile = {}
 Projectile.__index = Projectile
 setmetatable(Projectile, DeepObject)
 
--- How many random numbers an instance of this class needs
--- Each random will be a float in the range [0, 1)
-Projectile.RandomsNeeded = 1
-
-
 -- Base projectile constructor
--- @param turretAsset <table> turret asset for information
--- @param turretModel <Model> specific turret that shot this
+-- @param turret <Turret> specific turret that shot this
 -- @param target <BasePart> ship section part
--- @param randoms <table> array of random numbers, based on Projectile.RandomsNeeded
-function Projectile.new(turretAsset, turretModel, target, randoms)
+-- @param randoms <table> array of random numbers, based on Algorithm.Randoms
+function Projectile.new(turret, target, randoms)
 	local self = setmetatable(DeepObject.new({
-        TurretAsset = turretAsset;
-        TurretModel = turretModel;
+        Turret = turret;
         Target = target;
         Randoms = randoms;
     }), Projectile)
@@ -30,8 +23,8 @@ function Projectile.new(turretAsset, turretModel, target, randoms)
     )
 
     self:GetMaid(
-        turretModel.AncestryChanged:Connect(function()
-            if (not turretModel:IsDescendantOf(workspace)) then
+        turret.Model.AncestryChanged:Connect(function()
+            if (not turret.Model:IsDescendantOf(workspace)) then
                 self:Destroy()
             end
         end)
