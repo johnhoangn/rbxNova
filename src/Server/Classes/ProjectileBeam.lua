@@ -5,11 +5,10 @@ setmetatable(ProjectileBeam, Projectile)
 
 
 -- Beam constructor
-function ProjectileBeam.new(turret, target, randoms)
+function ProjectileBeam.new(turret, randoms)
 	local self = setmetatable(
         Projectile.new(
             turret,
-            target,
             randoms
         ),
         ProjectileBeam
@@ -25,7 +24,7 @@ end
 function ProjectileBeam:Fire(dt, excludedUser)
     local EffectService = self.Services.EffectService
     local Generate = self.Modules.ProjectileAlgorithms.ProjectileBeam.Generate
-    local offset1, offset2 = Generate(self.Turret, self.Target, self.Randoms)
+    local offset1, offset2 = Generate(self.Turret, self.Randoms)
 	local duration = self.Turret.Asset.Duration
 	local elapsed = 0
 	local hitDetectionJobID
@@ -48,7 +47,6 @@ function ProjectileBeam:Fire(dt, excludedUser)
 			local targetPos = self.Target.Position + offset1 + sweepProgress
 			local targetVector = targetPos - hardPointPos
 			local rayResults = self.Modules.RayUtil:CastSimple(hardPointPos, targetVector + targetVector.Unit * 5, rayParams)
-			local distance
 
 			-- TODO: DamageService:Damage(targetBase, sourceBase, section, value)
 			-- TODO: EntityService:GetEntityFromDescendant()

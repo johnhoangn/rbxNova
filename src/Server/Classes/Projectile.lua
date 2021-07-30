@@ -5,9 +5,9 @@ setmetatable(Projectile, DeepObject)
 
 -- Base projectile constructor
 -- @param turret <Turret> specific turret that shot this
--- @param target <BasePart> ship section part
 -- @param randoms <table> array of random numbers, based on Algorithm.Randoms
-function Projectile.new(turret, target, randoms)
+function Projectile.new(turret, randoms)
+	local target = turret:GetTarget()
 	local self = setmetatable(DeepObject.new({
         Turret = turret;
         Target = target;
