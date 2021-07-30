@@ -54,7 +54,6 @@ function TurretService:FireNPCTurret(turret)
 	local randoms = GenerateNPCRandoms(randomsNeeded)
 	local projectile = projectileClass.new(
 		turret,
-		turret:GetTarget(),
 		randoms
 	)
 
@@ -80,7 +79,6 @@ function TurretService:FireUserTurret(user, dt, section, turretUID, target, rand
 	local projectileClass = self.Classes[projectileClassName]
 	local projectile = projectileClass.new(
 		turret,
-		target,
 		GenerateUserRandoms(randUID, user, randomsNeeded, randoms)
 	)
 
@@ -117,17 +115,6 @@ function TurretService:HandleEntity(entity)
 	end
 
 	ManagedEntities:Add(entity.Base, entity)
-
-	spawn(function()
-		local hitboxes = workspace["433065"].Hitboxes:GetChildren()
-
-		while true do
-			for uid, turret in entity.Turrets:KeyIterator() do
-				self:SetTurretTarget(uid, turret, hitboxes[math.random(1, #hitboxes)])
-			end
-			wait(3)
-		end
-	end)
 end
 
 
