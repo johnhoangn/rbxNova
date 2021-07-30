@@ -47,6 +47,9 @@ local function GenerateNPCRandoms(num)
 end
 
 
+-- Fires a turret owned by an NPC, all information 
+--	is in the turret so the parameters here are simple
+-- @param turret <Turret>
 function TurretService:FireNPCTurret(turret)
 	local projectileClassName = "Projectile" .. turret.Asset.Type
 	local projectileClass = self.Classes[projectileClassName]
@@ -148,6 +151,7 @@ function TurretService:EngineStart()
 		end
 	)
 
+	-- TODO: Only shoot turrets under "TurretsWithTargets"
 	-- Responsible for handling turrets that have targets
 	TurretJobID = self.Services.MetronomeService:BindToFrequency(15, function(dt)
 		local now = tick()
@@ -168,7 +172,7 @@ function TurretService:EngineStart()
 
 	-- Responsible for acquiring targets for non-player entities' turrets
 	EntityJobID = self.Services.MetronomeService:BindToFrequency(5, function(dt)
-
+		-- TODO
 	end)
 end
 
