@@ -3,6 +3,17 @@ local cacheManager = {}
 local cacheSelector
 local pCache, caches, lended
 local numCaches, cacheSize
+local debrisFolder = workspace:FindFirstChild("Debris")
+
+
+local function NewPartCacheFolder()
+	local f = Instance.new("Folder")
+
+	f.Name = "PartCaches"
+	f.Parent = debrisFolder
+
+	return f
+end
 
 
 -- Retrieves a part instance from the cache
@@ -50,7 +61,7 @@ for i = 1, numCaches do
 		heap = pCache.new(
 			Instance.new("Part"),
 			cacheSize, 
-			workspace.Debris.PartCacheInstances
+			debrisFolder:FindFirstChild("PartCaches") or NewPartCacheFolder()
 		);
 		num = cacheSize;
 	}
