@@ -10,6 +10,9 @@ local TurretService = {Priority = 75}
 
 local AssetService, ShipService, MetronomeService,
 	Network, SyncRandomService, EffectService, SolarService
+
+local ProjectileEffects
+
 local TurretMode
 
 local TURRET_AI_FREQUENCY = 5 --Hz
@@ -48,31 +51,19 @@ end
 -- @param turret <Turret>
 -- @param turretAsset <table>
 function TurretService:Fire(turret, turretAsset)
-	--local turretAsset = AssetService:GetAsset("070")
 	local randoms = {}
+	local projectileType = turretAsset.Type
+	local projectileAlgo = self.Modules.ProjectileAlgorithms["Projectile" .. projectileType]
 
-	for i = 1, 4 do
+	for i = 1, projectileAlgo.Randoms do
 		randoms[i] = SyncRandomService:NextNumber(TurretRandUID)
 	end
 
-	local Generate = self.Modules.ProjectileAlgorithms.ProjectileBeam.Generate
-	local offset1, offset2 = Generate(turret, turret:GetTarget(), randoms)
-
-	-- TODO: This is hardcoded for beam turrets
-	--	the parameter list will not be the same for every turret
-	-- EffectService:Make(
-	-- 	"FD" .. turretAsset.EffectID,
-	-- 	nil,
-	-- 	0,
-	-- 	turret.Hardpoint,
-	-- 	turret.UID,
-	-- 	turret:GetTarget(),
-	-- 	offset1,
-	-- 	offset2,
-	-- 	Color3.new(0,1,1),
-	-- 	turret.Asset.ProjectileRange,
-	-- 	1
-	-- )
+	EffectService:Make(
+		"FD" .. turretAsset.EffectID,
+		nil, 0,
+		ProjectileEffects[projectileType](projectileAlgo, turret, randoms)
+	)
 
 	Network:FireServer(
 		Network:Pack(
@@ -125,7 +116,12 @@ function TurretService:EngineInit()
 	EffectService = self.Services.EffectService
 	SolarService = self.Services.SolarService
 
+	ProjectileEffects = self.Modules.ProjectileEffects
+
 	TurretMode = self.Enums.TurretMode
+
+	-- Load this, we'll need it later
+	local _ = self.Modules.PartCacheUtil
 end
 
 
