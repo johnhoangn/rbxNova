@@ -26,6 +26,7 @@ function ProjectileBeam:Fire(dt, excludedUser)
     local Generate = self.Modules.ProjectileAlgorithms.ProjectileBeam.Generate
     local offset1, offset2 = Generate(self.Turret, self.Randoms)
 	local duration = self.Turret.Asset.Duration
+	local frequency = 4
 	local elapsed = 0
 	local hitDetectionJobID
 
@@ -37,7 +38,7 @@ function ProjectileBeam:Fire(dt, excludedUser)
 	rayParams.FilterDescendantsInstances = { self.Turret.Hardpoint.Parent.Parent.Parent, workspace.GalacticBaseplate }
 	rayParams.FilterType = Enum.RaycastFilterType.Blacklist
 
-	hitDetectionJobID = self.Services.MetronomeService:BindToFrequency(4, function(dt)
+	hitDetectionJobID = self.Services.MetronomeService:BindToFrequency(frequency, function(dt)
 		elapsed += dt
 		if (elapsed >= duration) then
 			self.Services.MetronomeService:Unbind(hitDetectionJobID)
@@ -56,7 +57,7 @@ function ProjectileBeam:Fire(dt, excludedUser)
 				local shield = entityBase:GetAttribute("Shield" .. hit.Name)
 				local armor = entityBase:GetAttribute("Armor" .. hit.Name)
 				local hull = entityBase:GetAttribute("Hull" .. hit.Name)
-				local damage = (elapsed/duration) * self.Turret.Asset.Damage
+				local damage = self.Turret.Asset.Damage/frequency
 
 				if (shield ~= nil) then
 					if (shield > 0) then
