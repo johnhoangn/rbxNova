@@ -119,9 +119,6 @@ function TurretService:EngineInit()
 	ProjectileEffects = self.Modules.ProjectileEffects
 
 	TurretMode = self.Enums.TurretMode
-
-	-- Load this, we'll need it later
-	local _ = self.Modules.PartCacheUtil
 end
 
 
