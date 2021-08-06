@@ -8,7 +8,7 @@
 
 local SolarService = {Priority = 95}
 
-local Network, EntityService, DataService
+local Network, EntityService, DataService, ShipService
 local Players, PhysicsService
 
 local GalaxyFolder
@@ -167,13 +167,14 @@ function SolarService:WarpUser(user, newSystem)
     end
 
     local oldSystem = ActiveUsers:Get(user).System
-    -- local userEntity = EntityService:GetEntity(user.Character) -- TODO: Waiting on ShipService
+    local userEntity = ShipService:GetUserShip(user) -- TODO: Waiting on ShipService
     local okSignal = self.Classes.Signal.new()
 
     -- TODO: More precision
     local readyTimeout = 5
     local warpTimeout = 5
 
+	-- Prompts the user for confirmation that they want to warp
     Network:FireClient(
         user,
         Network:Pack(
@@ -187,46 +188,55 @@ function SolarService:WarpUser(user, newSystem)
         readyTimeout
     )
 
-    -- User disabled renderer and is ready to warp?
+    -- User confirmed and is ready to warp?
     if (not okSignal:Wait()) then
         -- Cancel warp
         return false
     end
 
-    oldSystem.Players:Remove(user)
-    -- oldSystem:RemoveEntity(userEntity)
+	-- Replicate warp preparation (including warping user)
+	Network:FireClientList(
+        oldSystem.Players:ToArray(),
+        Network:Pack(
+            Network.NetProtocol.Response,
+            Network.NetRequestType.WarpPreparing
+            --newSystem:UniversalPosition()
+        )
+    )
+
+	oldSystem.Players:Remove(user)
+    oldSystem:RemoveEntity(userEntity)
     -- wait(10)
-    -- newSystem:AddEntity(userEntity)
+	local newSystemPlayers = newSystem.Players:ToArray()
+	local newSystemBases, newSystemEntities = PackSystemEntities(newSystem)
+    newSystem:AddEntity(userEntity)
     newSystem.Players:Add(user)
 
+	-- Warp arrival, we're here! Stream entities to the user so their EntityService picks them up
+	--	as well as use the request to signal that they have exited warp including where in the system
+	--	they exited at
+	-- TODO: BigBrother, reset position/speed tracking
+	-- TODO: Move the ship base via server, do not forget to return network ownership
     Network:FireClient(
         user,
         Network:Pack(
-            Network.NetProtocol.Response,
-            Network.NetRequestType.WarpExit,
-            nil
-        ),
-        function(responded, user, dt, arriveOK)
-            okSignal:Fire(responded and arriveOK)
-        end,
-        warpTimeout
+            Network.NetProtocol.Forget,
+            Network.NetRequestType.WarpExit, {
+				UniversalPosition = newSystem.UniversalPosition;
+				CollisionGroupID = newSystem.CollisionGroupID;
+			}, newSystemBases, newSystemEntities
+        )
     )
 
-    -- User arrived safe and sound?
-    if (not okSignal:Wait()) then
-        -- Nope, undo the warp if the user is still here
-        if (ActiveUsers:Get(user) ~= nil) then
-            newSystem.Players:Remove(user)
-            -- newSystem:RemoveEntity(userEntity)
-            oldSystem.Players:Add(user)
-            -- oldSystem:AddEntity(userEntity)
-        end
-
-        return false
-    end
-
-    -- We're here! Stream entities to user
-    self:StreamEntities(user, newSystem)
+	-- Replicate warp arrival
+	Network:FireClientList(
+        newSystemPlayers,
+        Network:Pack(
+            Network.NetProtocol.Forget,
+            Network.NetRequestType.WarpExited,
+            userEntity.Base
+        )
+    )
 
     return true
 end
@@ -236,6 +246,7 @@ function SolarService:EngineInit()
 	Network = self.Services.Network
     EntityService = self.Services.EntityService
     -- DataService = self.Services.DataService
+	ShipService = self.Services.ShipService
 
     Players = self.RBXServices.Players
     PhysicsService = self.RBXServices.PhysicsService
