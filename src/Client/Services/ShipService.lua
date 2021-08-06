@@ -45,6 +45,7 @@ function ShipService:SetShip(base)
         UserShip = ship
         ProcessJobID = MetronomeService:BindToFrequency(60, ProcessUserShip)
         UserShip.IsMyShip = true
+		UserShip:MarkPurgeExempt(true)
 
 		if (UserShip.Model ~= nil) then
         	UserShip:Hide() -- Force reload once
