@@ -94,10 +94,10 @@ local function RenderJob(dt)
 end
 
 
--- Reconstructs entities from information sent by the server
+-- Reconstructs entities from provided information
 -- @param dt <float>
 -- @param entities <table>, {<Model> = {Type = <string>; InitialParams = <table>}}
-local function ReceiveEntities(dt, bases, entityInfo)
+function EntityService:ReceiveEntities(dt, bases, entityInfo)
     CacheMutex:Lock()
     for i, base in pairs(bases) do
         if (EntityService:GetEntity(base) ~= nil) then
@@ -184,7 +184,11 @@ function EntityService:PurgeCache()
     local size = AllEntities.Size
 
     CacheMutex:Lock()
-    for base, _ in AllEntities:KeyIterator() do
+    for base, entity in AllEntities:KeyIterator() do
+		if (entity.PurgeExempt) then
+			continue
+		end
+
         self:CacheEntity(base)
         AllEntities:Remove(base)
         CachedEntities:Remove(base)
@@ -221,7 +225,7 @@ end
 function EntityService:Enable(state)
     if (state) then
         -- TODO: configuration for render-update-rate
-        RenderJobID = MetronomeService:BindToFrequency(15, RenderJob)
+        RenderJobID = MetronomeService:BindToFrequency(60, RenderJob)
     else
         MetronomeService:Unbind(RenderJobID)
     end
@@ -261,7 +265,9 @@ end
 function EntityService:EngineStart()
     self:Enable(true)
 
-    Network:HandleRequestType(Network.NetRequestType.EntityStream, ReceiveEntities)
+    Network:HandleRequestType(Network.NetRequestType.EntityStream, function(dt, bases, entityData)
+		EntityService:ReceiveEntities(dt, bases, entityData)
+	end)
 end
 
 
