@@ -104,7 +104,8 @@ function Entity.new(...)
 		-- The server's constructor will be setting the id for all parts
 		--	so the client only needs to re-update the hitbox parts
 		self.Base.PrimaryPart:GetPropertyChangedSignal("CollisionGroupId"):Connect(function()
-			self:SetCollisions()
+			wait() -- Allow the server to finish replicating hitbox collisiongroups
+			self:SetCollisions() -- Then set them right back to 0
 		end)
 	)
 
@@ -116,7 +117,6 @@ end
 -- This is a client-sided change so the server will still hit
 function Entity:SetCollisions()
 	local hitboxes = self.Base:FindFirstChild("Hitboxes")
-	local model = self.Model
 
 	if (hitboxes ~= nil) then
 		for _, d in ipairs(hitboxes:GetDescendants()) do
@@ -126,6 +126,13 @@ function Entity:SetCollisions()
 			end
 		end
 	end
+end
+
+
+-- Marks this entity to be exempt or not from purges
+-- @param bool, true for exempt
+function Entity:MarkPurgeExempt(bool)
+	self.PurgeExempt = bool or nil
 end
 
 
