@@ -21,6 +21,8 @@ local SolarSystem
 -- @param enterArgs <table>
 -- @return <boolean> preparations completed
 local function PromptWarpOkay(dt, enterArgs)
+	SolarService.InSystem = false
+
 	-- TODO: Disable controller
     SolarService.WarpPreparing:Fire(dt, enterArgs)
 	EntityService:PurgeCache()
@@ -35,12 +37,15 @@ local function PromptWarpOkay(dt, enterArgs)
 end
 
 
--- Warp completed, process new entities and signal
+-- Called when the player is inserted into a system
+-- Receives entity information and asks EntityService to create them
+-- DOES NOT ADD INTO SYSTEM. THAT IS DONE AUTOMATICALLY AS ENTITIES
+--	ARE CREATED AND SIGNALED BY ENTITYSERVICE
 -- @param dt <float>
 -- @param systemData <table>
 -- @param bases <table>
 -- @param entityData <table>
-local function HandleWarpExit(dt, systemData, bases, entityData)
+local function HandleSystemInsert(dt, systemData, bases, entityData)
 	EntityService:ReceiveEntities(dt, bases, entityData)
 
 	SolarSystem = SolarService.Classes.SolarSystem.new(
@@ -48,11 +53,18 @@ local function HandleWarpExit(dt, systemData, bases, entityData)
 		systemData.CollisionGroupID
 	)
 
-	for _, base in ipairs(bases) do
-		SolarSystem:AddEntity(EntityService:GetEntity(base))
-	end
+	SolarService.InSystem = true
+end
 
-	SolarService.WarpExited:Fire(bases)
+
+-- Warp completed, process new entities and signal
+-- @param dt <float>
+-- @param systemData <table>
+-- @param bases <table>
+-- @param entityData <table>
+local function HandleWarpExit(dt, systemData, bases, entityData)
+	HandleSystemInsert(dt, systemData, bases, entityData)
+	SolarService.WarpExited:Fire(systemData, bases)
 
     return true
 end
@@ -63,7 +75,6 @@ end
 -- @return <table>
 function SolarService:GetEntities(entityType)
 	assert(SolarSystem ~= nil, "Attempt to get entities from nil system")
-
 	return SolarSystem.Entities[entityType or "All"]:ToArray()
 end
 
@@ -75,12 +86,22 @@ function SolarService:EngineInit()
 
     self.WarpPreparing = self.Classes.Signal.new()
     self.WarpExited = self.Classes.Signal.new()
+
+	self.InSystem = false
 end
 
 
 function SolarService:EngineStart()
 	Network:HandleRequestType(Network.NetRequestType.WarpPrepare, PromptWarpOkay)
     Network:HandleRequestType(Network.NetRequestType.WarpExit, HandleWarpExit)
+	Network:HandleRequestType(Network.NetRequestType.SystemInsert, HandleSystemInsert)
+
+	-- Automatically insert whatever entity is created into the current system if present
+	EntityService.EntityCreated:Connect(function(base)
+		if (SolarSystem ~= nil) then
+			SolarSystem:AddEntity(EntityService:GetEntity(base))
+		end
+	end)
 end
 
 
