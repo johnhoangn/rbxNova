@@ -16,28 +16,6 @@ local Systems
 local ActiveUsers
 
 
--- Track a user's travels across the galaxy
--- @param user <Player>
-local function ManageUser(user)
-    -- TODO: Retrieve previous system from data
-    local currentSystem = Systems:Get("Sol")
-
-    ActiveUsers:Add(user, {
-        System = currentSystem;
-    })
-
-    currentSystem.Players:Add(user, user)
-    SolarService:StreamEntities(user, currentSystem)
-
-    user.AncestryChanged:Connect(function()
-        if (user.Parent == nil) then
-            ActiveUsers:Get(user).System.Players:Remove(user)
-            ActiveUsers:Remove(user)
-        end
-    end)
-end
-
-
 -- Packs all entities within a system into an array
 -- @param system <SolarSystem>
 -- @returns <table> <table> arrays containing bases + their entity info respectively
@@ -49,6 +27,44 @@ local function PackSystemEntities(system)
     end
 
     return bases, EntityService:PackEntityInfo(bases)
+end
+
+
+-- Track a user's travels across the galaxy
+-- @param user <Player>
+local function ManageUser(user)
+    -- TODO: Retrieve previous system from data
+    local currentSystem = Systems:Get("Sol")
+	local systemBases, systemEntityData = PackSystemEntities(currentSystem)
+
+	ActiveUsers:Add(user, {
+		System = currentSystem;
+	})
+
+	-- Stream the entities to the user so it can create them prior to loading
+	ShipService:WaitForUserShip(user)
+
+	-- User joined, insert into system and signal appropriately
+	-- TODO: BigBrother, set position/speed tracking
+	-- TODO: Move the ship base via server, do not forget to return network ownership
+	currentSystem.Players:Add(user, user)
+	Network:FireClient(
+		user,
+		Network:Pack(
+			Network.NetProtocol.Forget,
+			Network.NetRequestType.SystemInsert, {
+				UniversalPosition = currentSystem.UniversalPosition;
+				CollisionGroupID = currentSystem.CollisionGroupID;
+			}, systemBases, systemEntityData
+		)
+	)
+
+	user.AncestryChanged:Connect(function()
+		if (user.Parent == nil) then
+			ActiveUsers:Get(user).System.Players:Remove(user)
+			ActiveUsers:Remove(user)
+		end
+	end)
 end
 
 
@@ -74,7 +90,7 @@ end
 -- @param entities <table> array of existing entities to insert
 function SolarService:CreateSystem(systemName, entities)
     local uPosition = Vector2.new(0, 0)
-    local collisionGroupID = ReserveCollisionGroup(systemName) 
+    local collisionGroupID = ReserveCollisionGroup(systemName)
     local newSystem = self.Classes.SolarSystem.new(uPosition, collisionGroupID)
 
     newSystem.Players = self.Classes.IndexedMap.new();
