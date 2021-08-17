@@ -8,7 +8,7 @@
 
 local SolarService = {Priority = 95}
 
-local Network, EntityService, DataService, ShipService
+local Network, EntityService, DataService, ShipService, ReadyService
 local Players, PhysicsService
 
 local GalaxyFolder
@@ -33,6 +33,13 @@ end
 -- Track a user's travels across the galaxy
 -- @param user <Player>
 local function ManageUser(user)
+	-- Hold until user is ready to go
+	--ShipService:WaitForUserShip(user)
+	if (not ReadyService:WaitReady(user, 300)) then
+		user:Kick("Took too long to load!")
+		return
+	end
+
     -- TODO: Retrieve previous system from data
     local currentSystem = Systems:Get("Sol")
 	local systemBases, systemEntityData = PackSystemEntities(currentSystem)
@@ -40,9 +47,6 @@ local function ManageUser(user)
 	ActiveUsers:Add(user, {
 		System = currentSystem;
 	})
-
-	-- Stream the entities to the user so it can create them prior to loading
-	ShipService:WaitForUserShip(user)
 
 	-- User joined, insert into system and signal appropriately
 	-- TODO: BigBrother, set position/speed tracking
@@ -262,6 +266,7 @@ function SolarService:EngineInit()
 	Network = self.Services.Network
     EntityService = self.Services.EntityService
     -- DataService = self.Services.DataService
+	ReadyService = self.Services.ReadyService
 	ShipService = self.Services.ShipService
 
     Players = self.RBXServices.Players
