@@ -144,13 +144,15 @@ function Turret:SetTarget(target)
 		self._TargetTracker:Disconnect()
 	end
 
-	-- When targets are assigned, we want to automatically stop tracking if it dies
-	self._TargetTracker = target.AncestryChanged:Connect(function()
-		if (not target:IsDescendantOf(workspace)) then
-			self._TargetTracker:Disconnect()
-			self:SetTarget(nil)
-		end
-	end)
+	if (target ~= nil) then
+		-- When targets are assigned, we want to automatically stop tracking if it dies
+		self._TargetTracker = target.AncestryChanged:Connect(function()
+			if (not target:IsDescendantOf(workspace)) then
+				self._TargetTracker:Disconnect()
+				self:SetTarget(nil)
+			end
+		end)
+	end
 
 	self.Hardpoint.Target.Value = target
 end
