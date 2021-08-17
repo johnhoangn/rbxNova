@@ -5,11 +5,12 @@ setmetatable(ProjectileBeam, Projectile)
 
 
 -- Beam constructor
-function ProjectileBeam.new(turret, randoms)
+function ProjectileBeam.new(turret, randoms, forceTarget)
 	local self = setmetatable(
         Projectile.new(
             turret,
-            randoms
+            randoms,
+			forceTarget
         ),
         ProjectileBeam
     )
@@ -24,7 +25,7 @@ end
 function ProjectileBeam:Fire(dt, excludedUser)
     local EffectService = self.Services.EffectService
     local Generate = self.Modules.ProjectileAlgorithms.ProjectileBeam.Generate
-    local offset1, offset2 = Generate(self.Turret, self.Randoms)
+    local offset1, offset2 = Generate(self.Turret, self.Randoms, self.Target)
 	local duration = self.Turret.Asset.Duration
 	local frequency = 4
 	local elapsed = 0

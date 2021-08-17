@@ -5,11 +5,12 @@ setmetatable(ProjectileRepeater, Projectile)
 
 
 -- Beam constructor
-function ProjectileRepeater.new(turret, randoms)
+function ProjectileRepeater.new(turret, randoms, forceTarget)
 	local self = setmetatable(
 		Projectile.new(
 			turret,
-			randoms
+			randoms,
+			forceTarget
 		),
 		ProjectileRepeater
 	)
@@ -24,7 +25,7 @@ end
 function ProjectileRepeater:Fire(dt, excludedUser)
 	local EffectService = self.Services.EffectService
 	local Generate = self.Modules.ProjectileAlgorithms.ProjectileRepeater.Generate
-	local spreads = Generate(self.Turret, self.Randoms)
+	local spreads = Generate(self.Turret, self.Randoms, self.Target)
 	local maxDistance = self.Turret.Asset.ProjectileRange
 	local numPulses = #spreads
 	local hitDetectionJobIDs = table.create(#spreads, "")
