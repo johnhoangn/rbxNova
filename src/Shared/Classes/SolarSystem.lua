@@ -27,6 +27,9 @@ function SolarSystem.new(universalPosition, collisionGroupID)
             EntityShip = IndexedMap.new();
             EntityAsteroid = IndexedMap.new();
             EntityDebris = IndexedMap.new();
+			EntityMissile = IndexedMap.new();
+			EntityStation = IndexedMap.new();
+			EntityWarpgate = IndexedMap.new();
         };
     })
 
