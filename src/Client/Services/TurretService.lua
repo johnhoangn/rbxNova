@@ -33,7 +33,6 @@ local function ScanTurrets(dt)
 		-- TODO: Consider what to do with mining lasers
 		-- TODO: Actually filter
 		systemShips = TurretService.Modules.TableUtil.Filter(systemShips, function(entity)
-			print(entity)
 			return entity ~= UserShip
 		end)
 
@@ -42,14 +41,8 @@ local function ScanTurrets(dt)
 			return
 		end
 
-		-- Sort by ascending distance, ~O(mlogm) ship to ship, m = #filtered, worst case m == n
-		table.sort(systemShips, function(a, b)
-			return (a:RealPosition() - currentPosition).Magnitude
-				> (b:RealPosition() - currentPosition).Magnitude
-		end)
-
 		-- O(h), h = #turrets
-		for uid, turret in UserShip.Turrets:KeyIterator() do print(uid, turret:GetTarget() ~= nil)
+		for uid, turret in UserShip.Turrets:KeyIterator() do
 			if (turret:GetTarget() == nil) then
 				if (turret.Mode == TurretMode.Priority) then
 					local turretPosition = turret.Model.PitchOrigin.Position
@@ -82,7 +75,7 @@ local function ScanTurrets(dt)
 			end
 		end
 
-		-- O(n + mlogm + h*m)
+		-- O(n + h*m)
 	end
 end
 
