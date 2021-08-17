@@ -37,7 +37,6 @@ local function ScanTurrets(dt)
 		end)
 
 		if (#systemShips == 0) then
-			print("No qualifying ships")
 			return
 		end
 
@@ -54,8 +53,7 @@ local function ScanTurrets(dt)
 					-- TODO: Efficient target search algorithm please, brain
 					-- TODO: Actually add priority setting, for now we grab ships
 
-					-- Iterate through the ship to ship distance sorted array
-					--	to find the closest ship to this turret.
+					-- Find the closest ship to this turret.
 					-- O(m)
 					for _, ship in ipairs(systemShips) do
 						local thisDist = (ship.Base.PrimaryPart.Position - turretPosition).Magnitude
