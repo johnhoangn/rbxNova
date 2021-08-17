@@ -28,10 +28,11 @@ return {
     WarpExit = 4;
 	WarpPreparing = 5; -- Replication
 	WarpExited = 6; -- Replication
+	SystemInsert = 7; -- Initialiser
 
-    ShipControl = 7;
+    ShipControl = 8;
 
-    TurretShoot = 8;
-	TurretTarget = 9; -- Used only for users to replicate their targeting, server does it automatically
-	TurretMode = 10; -- Used only for users to replicate their mode switching, server does it automatically
+    TurretShoot = 9;
+	TurretTarget = 10; -- Used only for users to replicate their targeting, server does it automatically
+	TurretMode = 11; -- Used only for users to replicate their mode switching, server does it automatically
 }
