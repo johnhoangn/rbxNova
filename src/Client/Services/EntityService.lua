@@ -151,11 +151,12 @@ function EntityService:CreateEntity(base, entityType, entityParams, noLock)
     end
 
     AllEntities:Add(base, newEntity)
-    self.EntityCreated:Fire(base)
 
     if (not noLock) then
         CacheMutex:Unlock()
     end
+
+	self.EntityCreated:Fire(base)
 
     return newEntity
 end

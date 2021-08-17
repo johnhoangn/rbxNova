@@ -46,13 +46,12 @@ end
 -- @param bases <table>
 -- @param entityData <table>
 local function HandleSystemInsert(dt, systemData, bases, entityData)
-	EntityService:ReceiveEntities(dt, bases, entityData)
-
 	SolarSystem = SolarService.Classes.SolarSystem.new(
 		systemData.UniversalPosition,
 		systemData.CollisionGroupID
 	)
 
+	EntityService:ReceiveEntities(dt, bases, entityData)
 	SolarService.InSystem = true
 end
 
@@ -99,7 +98,12 @@ function SolarService:EngineStart()
 	-- Automatically insert whatever entity is created into the current system if present
 	EntityService.EntityCreated:Connect(function(base)
 		if (SolarSystem ~= nil) then
-			SolarSystem:AddEntity(EntityService:GetEntity(base))
+			if (base.PrimaryPart.CollisionGroupId == SolarSystem.CollisionGroupID) then
+				SolarSystem:AddEntity(EntityService:GetEntity(base))
+			else
+				-- We shouldn't be seeing this...
+				EntityService:DestroyEntity(base)
+			end
 		end
 	end)
 end
