@@ -6,9 +6,9 @@ local ZERO_VECTOR = Vector3.new()
 
 
 Algorithms.ProjectileBeam = { Randoms = 4; }
-function Algorithms.ProjectileBeam.Generate(turret, randoms)
+function Algorithms.ProjectileBeam.Generate(turret, randoms, target)
 	-- Straight line towards the target, generate new basis vectors for offsets
-	local targetPos = turret:GetTarget().Position
+	local targetPos = target.Position
 	local targetVector = targetPos - turret.Model.PitchOrigin.Position
 
 	-- Using the new basis, generate two points the beam will sweep across
@@ -29,9 +29,9 @@ end
 -- More randoms than we need, but in preparation for skill-based changes
 -- MUST NEED AT LEAST 2x MAX PULSES IN RANDOMS
 Algorithms.ProjectileRepeater = { Randoms = 16; }
-function Algorithms.ProjectileRepeater.Generate(turret, randoms)
+function Algorithms.ProjectileRepeater.Generate(turret, randoms, target)
 	-- Straight line towards the target, generate new basis vectors for offsets
-	local targetPos = turret:GetTarget().Position
+	local targetPos = target.Position
 	local targetVector = targetPos - turret.Model.PitchOrigin.Position
 	local spreads = table.create(turret.Asset.ProjectileCount, ZERO_VECTOR)
 

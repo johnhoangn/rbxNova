@@ -14,23 +14,23 @@
 local Effects = {}
 
 
-function Effects.Beam(projectileAlgo, turret, turretAsset, randoms)
-	local offset1, offset2 = projectileAlgo.Generate(turret, randoms)
+function Effects.Beam(projectileAlgo, turret, randoms)
+	local offset1, offset2 = projectileAlgo.Generate(turret, randoms, turret:GetTarget())
 
 	return turret.Hardpoint,
 		turret.UID,
 		turret:GetTarget(),
 		offset1,
 		offset2,
-		Color3.new(0,1,1), --turretAsset.BeamColor,
-		turretAsset.ProjectileRange,
-		turretAsset.Duration
+		Color3.new(0,1,1), --turret.Asset.BeamColor,
+		turret.Asset.ProjectileRange,
+		turret.GetTargetsset.Duration
 end
 
 
 function Effects.Repeater(projectileAlgo, turret, randoms)
 	local turretAsset = turret.Asset
-	local spreads = projectileAlgo.Generate(turret, randoms)
+	local spreads = projectileAlgo.Generate(turret, randoms, turret:GetTarget())
 
 	return turret.Hardpoint,
 		turret.UID,

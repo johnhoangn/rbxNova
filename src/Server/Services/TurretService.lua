@@ -57,7 +57,8 @@ function TurretService:FireNPCTurret(turret)
 	local randoms = GenerateNPCRandoms(randomsNeeded)
 	local projectile = projectileClass.new(
 		turret,
-		randoms
+		randoms,
+		nil
 	)
 
 	projectile:Fire(0, nil)
@@ -82,7 +83,8 @@ function TurretService:FireUserTurret(user, dt, section, turretUID, target, rand
 	local projectileClass = self.Classes[projectileClassName]
 	local projectile = projectileClass.new(
 		turret,
-		GenerateUserRandoms(randUID, user, randomsNeeded, randoms)
+		GenerateUserRandoms(randUID, user, randomsNeeded, randoms),
+		target
 	)
 
 	projectile:Fire(dt, user)
