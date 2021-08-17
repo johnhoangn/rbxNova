@@ -35,7 +35,6 @@ local function ManageUser(user)
 	local system = SolarService:GetSystem(userData.Whereabouts.System)
     local ship = ShipService:CreateShip(shipBaseID, require(shipAsset.DefaultConfig), system, nil, user)
 
-    SolarService:AddEntity(system, ship)
     --ship:PlaceAt(user.Character.PrimaryPart.CFrame)
     ship.Base.Name = string.format("%s", user.UserId)
     ship.Base.PrimaryPart:SetNetworkOwner(user)
