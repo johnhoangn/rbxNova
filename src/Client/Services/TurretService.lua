@@ -12,19 +12,85 @@ local AssetService, ShipService, MetronomeService,
 	Network, SyncRandomService, EffectService, SolarService
 
 local ProjectileEffects
-
 local TurretMode
 
-local TURRET_AI_FREQUENCY = 5 --Hz
+local TURRET_AI_FREQUENCY_1 = 5 --Hz
+local TURRET_AI_FREQUENCY_2 = 15 --Hz
 
 local UserShip
-local TurretJobID
+local TurretScanJobID, TurretShootJobID
 local TurretRandUID
+
+
+-- Goes through the ship's turrets and tries to find targets (if on priority mode)
+-- @param dt <float>
+local function ScanTurrets(dt)
+	if (SolarService.InSystem and UserShip ~= nil and UserShip.Turrets ~= nil) then
+		local systemShips = SolarService:GetEntities("EntityShip")
+		local currentPosition = UserShip:RealPosition()
+
+		-- Filter only hostile ships, ~O(n), n = #ships in the system
+		-- TODO: Consider what to do with mining lasers
+		-- TODO: Actually filter
+		systemShips = TurretService.Modules.TableUtil.Filter(systemShips, function(entity)
+			print(entity)
+			return entity ~= UserShip
+		end)
+
+		if (#systemShips == 0) then
+			print("No qualifying ships")
+			return
+		end
+
+		-- Sort by ascending distance, ~O(mlogm) ship to ship, m = #filtered, worst case m == n
+		table.sort(systemShips, function(a, b)
+			return (a:RealPosition() - currentPosition).Magnitude
+				> (b:RealPosition() - currentPosition).Magnitude
+		end)
+
+		-- O(h), h = #turrets
+		for uid, turret in UserShip.Turrets:KeyIterator() do print(uid, turret:GetTarget() ~= nil)
+			if (turret:GetTarget() == nil) then
+				if (turret.Mode == TurretMode.Priority) then
+					local turretPosition = turret.Model.PitchOrigin.Position
+					local closest = systemShips[1]
+					local cDist = (systemShips[1].Base.PrimaryPart.Position - turretPosition).Magnitude
+
+					-- Turret has no target, and is in priority mode (auto)
+					-- Search for a target
+					-- TODO: Efficient target search algorithm please, brain
+					-- TODO: Actually add priority setting, for now we grab ships
+
+					-- Iterate through the ship to ship distance sorted array
+					--	to find the closest ship to this turret.
+					-- O(m)
+					for _, ship in ipairs(systemShips) do
+						local thisDist = (ship.Base.PrimaryPart.Position - turretPosition).Magnitude
+
+						if (thisDist < cDist) then
+							closest = ship
+							cDist = thisDist
+						end
+					end
+
+					turret:SetTarget(closest.Base.PrimaryPart)
+
+				-- elseif (turret.Mode == TurretMode.Off) then
+				-- elseif (turret.Mode == TurretMode.Target) then
+				--	These modes don't need scanning; here for logic visualization
+				end
+			end
+		end
+
+		-- O(n + mlogm + h*m)
+	end
+end
 
 
 -- Loops through the ship's currently attached turrets
 --	and attempts to shoot them
-local function StepTurrets(dt)
+-- @param dt <float>
+local function ShootTurrets(dt)
 	local now = tick()
 
 	if (UserShip ~= nil and UserShip.Turrets ~= nil) then
@@ -34,12 +100,15 @@ local function StepTurrets(dt)
 					-- Turret has a target, check if eligible to fire and shoot
 					TurretService:Fire(turret, turret.Asset)
 					turret._LastShot = now + turret.Asset.Duration
-				end
 
-			elseif (turret.Mode == TurretMode.Priority) then
-				-- Turret has no target, and is in priority mode
-				-- Search for a target
-				-- TODO: Efficient target search algorithm please, brain
+				elseif (turret.Mode == TurretMode.Priority) then
+					-- Last selected target out of range, nil so scanner can pick up a new one
+					turret:SetTarget(nil)
+
+				-- elseif (turret.Mode == TurretMode.Target) then
+				-- When explicitly targeting something, do not set to nil even if out of range
+				--	this is here just for visualizing the logic
+				end
 			end
 		end
 	end
@@ -107,6 +176,21 @@ function TurretService:SetTurretTarget(turret, target)
 end
 
 
+function TurretService:Enable(state)
+	if (state) then
+		UserShip = ShipService:GetShip()
+		TurretScanJobID = MetronomeService:BindToFrequency(TURRET_AI_FREQUENCY_1, ScanTurrets)
+		TurretShootJobID = MetronomeService:BindToFrequency(TURRET_AI_FREQUENCY_2, ShootTurrets)
+	else
+		UserShip = nil
+		MetronomeService:Unbind(TurretScanJobID)
+		MetronomeService:Unbind(TurretShootJobID)
+		TurretScanJobID = nil
+		TurretShootJobID = nil
+	end
+end
+
+
 function TurretService:EngineInit()
 	AssetService = self.Services.AssetService
 	ShipService = self.Services.ShipService
@@ -117,7 +201,6 @@ function TurretService:EngineInit()
 	SolarService = self.Services.SolarService
 
 	ProjectileEffects = self.Modules.ProjectileEffects
-
 	TurretMode = self.Enums.TurretMode
 end
 
@@ -125,15 +208,12 @@ end
 function TurretService:EngineStart()
 	TurretRandUID = SyncRandomService:NewSyncRandom()
 	ShipService.EnableStateChanged:Connect(function(state)
-		if (state) then
-			UserShip = ShipService:GetShip()
-			TurretJobID = MetronomeService:BindToFrequency(TURRET_AI_FREQUENCY, StepTurrets)
-		else
-			UserShip = nil
-			MetronomeService:Unbind(TurretJobID)
-			TurretJobID = nil
-		end
+		self:Enable(state)
 	end)
+
+	if (UserShip == nil and ShipService:GetShip() ~= nil) then
+		self:Enable(true)
+	end
 end
 
 
