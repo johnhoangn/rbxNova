@@ -13,7 +13,7 @@ local TurretService = {Priority = 75}
 local Network, SyncRandomService, ShipService, SolarService, EntityService
 
 local ServerRandom
-local ManagedEntities
+local ManagedEntities, ListLock
 local TurretsWithTargets
 local TurretJobID
 local EntityJobID
@@ -44,6 +44,39 @@ local function GenerateNPCRandoms(num)
 	end
 
 	return randoms
+end
+
+
+-- Scans for targets for managed entities
+-- @param dt <float>
+local function TurretScanner(dt)
+	-- For every managed entity:
+	--	Retrieve all other entities in the mutual system and cache
+	--	Filter hostile/within farthest turret range
+	--	Select closest entity to specific turrets
+	local systemShipCaches = {}
+
+	-- TODO
+end
+
+
+-- Fires managed entities' turrets if applicable
+-- @param dt <float>
+local function TurretShooter(dt)
+	local now = tick()
+
+	for entityBase, entity in ManagedEntities:KeyIterator() do
+		for uid, turret in entity.Turrets:KeyIterator() do
+			if (turret:GetTarget() ~= nil) then
+				turret:Step(1/30)
+
+				if (turret:CanFire(now)) then
+					turret._LastShot = now + turret.Asset.Duration
+					TurretService:FireNPCTurret(turret)
+				end
+			end
+		end
+	end
 end
 
 
@@ -132,6 +165,7 @@ function TurretService:EngineInit()
 
 	ManagedEntities = self.Classes.IndexedMap.new()
 	TurretsWithTargets = self.Classes.IndexedMap.new()
+	ListLock = self.Classes.Mutex.new()
 	ServerRandom = Random.new()
 end
 
@@ -155,27 +189,10 @@ function TurretService:EngineStart()
 
 	-- TODO: Only shoot turrets under "TurretsWithTargets"
 	-- Responsible for handling turrets that have targets
-	TurretJobID = self.Services.MetronomeService:BindToFrequency(15, function(dt)
-		local now = tick()
-
-		for entityBase, entity in ManagedEntities:KeyIterator() do
-			for uid, turret in entity.Turrets:KeyIterator() do
-				if (turret:GetTarget() ~= nil) then
-					turret:Step(1/30)
-
-					if (turret:CanFire(now)) then
-						turret._LastShot = now + turret.Asset.Duration
-						self:FireNPCTurret(turret)
-					end
-				end
-			end
-		end
-	end)
+	TurretJobID = self.Services.MetronomeService:BindToFrequency(15, TurretShooter)
 
 	-- Responsible for acquiring targets for non-player entities' turrets
-	EntityJobID = self.Services.MetronomeService:BindToFrequency(5, function(dt)
-		-- TODO
-	end)
+	EntityJobID = self.Services.MetronomeService:BindToFrequency(5, TurretScanner)
 end
 
 

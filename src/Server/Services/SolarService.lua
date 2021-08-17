@@ -178,6 +178,13 @@ function SolarService:GetSystem(systemName)
 end
 
 
+-- Retrieves a copy of the systems list
+-- @returns <Map>
+function SolarService:GetAllSystems()
+	return Systems:ToMap()
+end
+
+
 -- Warps a user to another system, must handle async errors gracefully
 -- @param user <Player>
 -- @param newSystem <SolarSystem>
