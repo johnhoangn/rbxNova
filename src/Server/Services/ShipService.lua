@@ -32,8 +32,8 @@ local function ManageUser(user)
 
     local shipBaseID = shipData.BaseID
     local shipAsset = AssetService:GetAsset(shipBaseID)
-    local ship = ShipService:CreateShip(shipBaseID, require(shipAsset.DefaultConfig), nil, user)
-    local system = SolarService:GetSystem(userData.Whereabouts.System)
+	local system = SolarService:GetSystem(userData.Whereabouts.System)
+    local ship = ShipService:CreateShip(shipBaseID, require(shipAsset.DefaultConfig), system, nil, user)
 
     SolarService:AddEntity(system, ship)
     --ship:PlaceAt(user.Character.PrimaryPart.CFrame)
@@ -97,9 +97,10 @@ end
 -- NOTE: The new ship must be placed into a SolarSystem
 -- @param baseID <string>
 -- @param config <table>
+-- @param system <SolarSystem>
 -- @param status <table> == nil, information on the ship's status; defaults to asset values
 -- @param user <Player> == nil, user that owns this vessel
-function ShipService:CreateShip(baseID, config, status, user)
+function ShipService:CreateShip(baseID, config, system, status, user)
     local asset = AssetService:GetAsset(baseID)
     local base = AssetService:GetAsset("060").Model:Clone()
 
@@ -190,7 +191,8 @@ function ShipService:CreateShip(baseID, config, status, user)
         NPCProcessJobID = self.Services.MetronomeService:BindToFrequency(15, ProcessNPCShips)
     end
 
-    self.ShipCreated:Fire(base)
+	SolarService:AddEntity(system, ship)
+    self.ShipCreated:Fire(base, user)
 
     return ship
 end
@@ -204,8 +206,43 @@ function ShipService:GetShip(base)
 end
 
 
+-- Retrieves a user's ship
+-- @param user <Player>
+-- @returns <EntityShip>
 function ShipService:GetUserShip(user)
-    return ActiveUsers:Get(user).Ship
+	local record = ActiveUsers:Get(user)
+    return record and record.Ship
+end
+
+-- Retrieves a user's ship or waits until it exists
+-- @param user <Player>
+-- @param timeout <float> == 30
+-- @returns <EntityShip>
+function ShipService:WaitForUserShip(user, timeout)
+	local ship = self:GetUserShip(user)
+
+	if (ship ~= nil) then
+		return ship
+	else
+		local returned = false
+		local retrieved = self.Classes.Signal.new()
+		local tempConn = self.ShipCreated:Connect(function(base, _user)
+			if (_user == user) then
+				retrieved:Fire(true)
+			end
+		end)
+
+		self.Modules.ThreadUtil.Delay(timeout or 5, function()
+			if (not returned) then
+				retrieved:Fire(false)
+			end
+		end)
+
+		returned = retrieved:Wait()
+		tempConn:Disconnect()
+
+		return self:GetUserShip(user)
+	end
 end
 
 
