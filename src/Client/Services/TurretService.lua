@@ -27,7 +27,6 @@ local TurretRandUID
 local function ScanTurrets(dt)
 	if (SolarService.InSystem and UserShip ~= nil and UserShip.Turrets ~= nil) then
 		local systemShips = SolarService:GetEntities("EntityShip")
-		local currentPosition = UserShip:RealPosition()
 
 		-- Filter only hostile ships, ~O(n), n = #ships in the system
 		-- TODO: Consider what to do with mining lasers
@@ -52,6 +51,7 @@ local function ScanTurrets(dt)
 					-- Search for a target
 					-- TODO: Efficient target search algorithm please, brain
 					-- TODO: Actually add priority setting, for now we grab ships
+					-- TODO: Specific component targeting
 
 					-- Find the closest ship to this turret.
 					-- O(m)
