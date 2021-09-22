@@ -115,7 +115,7 @@ function TurretService:Fire(turret, turretAsset)
 	local projectileType = turretAsset.Type
 	local projectileAlgo = self.Modules.ProjectileAlgorithms["Projectile" .. projectileType]
 
-	for i = 1, projectileAlgo.Randoms do
+	for i = 1, projectileAlgo.NumRandoms do
 		randoms[i] = SyncRandomService:NextNumber(TurretRandUID)
 	end
 

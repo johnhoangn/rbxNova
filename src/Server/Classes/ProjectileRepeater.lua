@@ -4,7 +4,7 @@ ProjectileRepeater.__index = ProjectileRepeater
 setmetatable(ProjectileRepeater, Projectile)
 
 
--- Beam constructor
+-- Repeater constructor
 function ProjectileRepeater.new(turret, randoms, forceTarget)
 	local self = setmetatable(
 		Projectile.new(

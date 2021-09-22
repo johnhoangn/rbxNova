@@ -86,7 +86,7 @@ end
 function TurretService:FireNPCTurret(turret)
 	local projectileClassName = "Projectile" .. turret.Asset.Type
 	local projectileClass = self.Classes[projectileClassName]
-	local randomsNeeded = self.Modules.ProjectileAlgorithms[projectileClassName].Randoms
+	local randomsNeeded = self.Modules.ProjectileAlgorithms[projectileClassName].NumRandoms
 	local randoms = GenerateNPCRandoms(randomsNeeded)
 	local projectile = projectileClass.new(
 		turret,
@@ -112,7 +112,7 @@ function TurretService:FireUserTurret(user, dt, section, turretUID, target, rand
 	local turretBaseID = ship.InitialParams.Config.Sections[section].Attachments[turretUID].BaseID
 	local turretAsset = self.Services.AssetService:GetAsset(turretBaseID)
 	local projectileClassName = "Projectile" .. turretAsset.Type
-	local randomsNeeded = self.Modules.ProjectileAlgorithms[projectileClassName].Randoms
+	local randomsNeeded = self.Modules.ProjectileAlgorithms[projectileClassName].NumRandoms
 	local projectileClass = self.Classes[projectileClassName]
 	local projectile = projectileClass.new(
 		turret,
