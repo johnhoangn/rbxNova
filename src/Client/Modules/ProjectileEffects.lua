@@ -44,8 +44,7 @@ end
 
 
 function Effects.Torpedo(projectileAlgo, turret, randoms)
-	local turretAsset = turret.Asset
-
+	return Effects.Repeater(projectileAlgo, turret, randoms)
 end
 
 
